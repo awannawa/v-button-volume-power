@@ -52,7 +52,7 @@ Change `[ ]` to `[x]` only after the task's verification passes.
 - [x] T05 Drag and position persistence
 - [x] T07 Responsive behavior and gesture exclusion
 - [x] T08 Settings and onboarding
-- [ ] T09 Vivo resilience and performance
+- [x] T09 Vivo resilience and performance
 - [ ] T10 QA and APK release
 - [ ] T11 Optional: wake helper and extra buttons
 
@@ -136,3 +136,10 @@ History:
 - Files changed: SettingsActivity.kt (status dual-check, Enable, all setting rows, onboarding), res/layout/activity_settings.xml (new), Prefs.kt (size preset + opacity keys/readers/writers, timeout bounds), VButtonService.kt (prefs listener paired register/unregister), overlay/OverlayView.kt (applyConfig reads prefs, mid-drag alpha retarget guard), res/values/strings.xml (all copy), res/values/themes.xml (DayNight v29 + API 28 fallback), SizePresetFromPrefTest.kt (42 total)
 - Unfinished items or things to check: needs device test — clean install to enabled service end to end; restricted-settings step on Android 13+; every setting reflects on the overlay immediately; status active/inactive both ways; day/night; TalkBack on the settings screen
 - Notes for the next worker (T09): dead-service warning needs a "was active" record — the service connect path is the place to set it (keys only in Prefs.kt). The idle audit (no timers/polling/receivers/threads while idle; every Handler callback removed when unused) should re-verify: collapse timer (T04, paired), repeat handler (T06, paired + detach kill), fade animator (T06, detach-cancelled). Vivo guide: use ACTION_IGNORE_BATTERY_OPTIMIZATIONS or app info — do not assume a Vivo-specific intent exists. Measurement commands for the report: adb shell dumpsys meminfo com.awannawa.vbutton (target < 40MB PSS idle) and adb shell dumpsys batterystats
+- Date: 2026-11-01
+- Worker: orchestrator-dispatched implementer (fresh subagent session), audited by orchestrator; review clean (no fix round)
+- Task worked on: T09 Vivo resilience and performance
+- Status: done (code parts; all measurements need device)
+- Files changed: SettingsActivity.kt (Vivo guide section, two battery/app-info buttons with fallback, dead-service warning line), res/layout/activity_settings.xml (guide + warning), Prefs.kt (was_service_active key), VButtonService.kt (sets the flag first thing in onServiceConnected), res/values/strings.xml (guide copy)
+- Unfinished items or things to check: ALL measurements need device — 24h survival with guide followed; `adb shell dumpsys meminfo com.awannawa.vbutton` < 40MB PSS idle; `adb shell dumpsys batterystats` no significant consumer; reboot survival; power-saving mode; hours screen-off; warning appears after revoke/kill-and-disable. Exact commands in task-09-report.md. Idle audit: all 6 items PASS (verified); drag move path zero-allocation confirmed
+- Notes for the next worker (T10): the Settings action constant is ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS (corrected from the ruling — verified against android.jar). was_service_active never clears by design. Force-stop gap is a documented limitation (T09 Notes). You own signing: keystore OUTSIDE the repo (~/keystores/), secrets in a gitignored properties file — never commit them. assembleRelease is allowed FOR YOU ONLY. After release build, check APK size (NFR-5 <1MB if possible) and permissions (aapt dump permissions — must stay empty)

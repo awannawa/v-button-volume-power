@@ -135,4 +135,31 @@ object Prefs {
             .putFloat(KEY_Y_RATIO, ratio)
             .apply()
     }
+
+    /**
+     * T09 (PRD R2, dead-service detection): TRUE once [VButtonService.onServiceConnected]
+     * has run at least once — the flag means "has been active before", never "is active
+     * now" (that is the secure-setting read in SettingsActivity.isServiceActive).
+     *
+     * Nothing ever clears it (ruling): the flag cannot distinguish a Funtouch background
+     * kill from a deliberate disable, so clearing it would guess — and a wrongly cleared
+     * flag defeats the warning exactly when the service was killed. The T09 warning
+     * shows when the service reads as INACTIVE while this flag is set, and its copy is
+     * a neutral state statement for the same reason.
+     */
+    private const val KEY_WAS_SERVICE_ACTIVE = "was_service_active"
+    const val WAS_SERVICE_ACTIVE_DEFAULT = false
+
+    /** Whether the service has been connected at least once, or the default (false). */
+    fun wasServiceActive(context: Context): Boolean =
+        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+            .getBoolean(KEY_WAS_SERVICE_ACTIVE, WAS_SERVICE_ACTIVE_DEFAULT)
+
+    /** Writes the flag. Only VButtonService.onServiceConnected (T09) writes this. */
+    fun setWasServiceActive(context: Context, active: Boolean) {
+        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_WAS_SERVICE_ACTIVE, active)
+            .apply()
+    }
 }

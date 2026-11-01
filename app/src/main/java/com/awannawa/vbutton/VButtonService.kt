@@ -53,6 +53,10 @@ class VButtonService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        // T09 dead-service detection (PRD R2): mark "has been active at least once"
+        // before anything else can fail, so a later Funtouch kill leaves the flag set
+        // for the SettingsActivity warning. Never cleared (see Prefs.wasServiceActive).
+        Prefs.setWasServiceActive(this, true)
         windowManager = getSystemService(WindowManager::class.java)
         attachOverlay()
         registerPrefsListener()

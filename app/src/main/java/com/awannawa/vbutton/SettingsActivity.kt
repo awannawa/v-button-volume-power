@@ -1,10 +1,14 @@
 package com.awannawa.vbutton
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.RadioGroup
 import android.widget.SeekBar
@@ -18,8 +22,16 @@ import android.widget.TextView
  * applyConfig, so nothing here touches the overlay or the service directly
  * (AGENTS.md integration points). The status read re-runs in onResume; there is no
  * polling or receiver (NFR-1).
+ *
+ * T09 adds the dead-service warning (PRD R2) and the Vivo keep-alive guide with two
+ * buttons into the system battery and App info screens.
  */
 class SettingsActivity : Activity() {
+
+    private companion object {
+        // Same log tag pattern as the service and the overlay (AGENTS.md error handling).
+        const val LOG_TAG = "VButton"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Before super.onCreate and any inflation: the DayNight theme is resource-
@@ -34,8 +46,8 @@ class SettingsActivity : Activity() {
     override fun onResume() {
         super.onResume()
         // A fresh read on every resume is the v1 status refresh (ruling): the user
-        // returns from the accessibility settings and the state is re-read. The
-        // dead-service warning lives in T09.
+        // returns from the accessibility settings and the state is re-read. The same
+        // refresh updates the dead-service warning (T09).
         refreshUi()
     }
 
@@ -43,6 +55,31 @@ class SettingsActivity : Activity() {
         // FR-10: opens the system screen where the service toggle lives.
         findViewById<Button>(R.id.enable_button).setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+
+        // T09 (PRD R2): the battery-optimization listing screen — no permission needed
+        // (unlike ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, which is deliberately
+        // not used: it would require REQUEST_IGNORE_BATTERY_OPTIMIZATIONS and the
+        // manifest must stay at zero). Constant name note: the platform has no
+        // ACTION_IGNORE_BATTERY_OPTIMIZATIONS; the listing screen is spelled
+        // ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS (API 23+). Some builds ship no
+        // handler for it; the fallback is App info, where the battery entry lives too.
+        // Logged rather than silent (documented choice): logcat is the only diagnostic
+        // channel on the target device and this fallback is a Funtouch-behavior signal.
+        findViewById<Button>(R.id.vivo_battery_button).setOnClickListener {
+            try {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            } catch (e: ActivityNotFoundException) {
+                Log.w(LOG_TAG, "no activity for ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS, falling back to App info", e)
+                openAppInfo()
+            }
+        }
+
+        // T09 (PRD R2): the app's own App info page — Autostart, battery, and the
+        // restricted-settings path (R3) all live there. Core settings action, present
+        // on every API level this app supports, so no fallback handling.
+        findViewById<Button>(R.id.vivo_app_info_button).setOnClickListener {
+            openAppInfo()
         }
 
         // FR-10 size preset: the stored string is the desired preset; compact mode
@@ -105,10 +142,28 @@ class SettingsActivity : Activity() {
         }
     }
 
+    /** Opens this app's App info page (T09): package URI, no permission needed. */
+    private fun openAppInfo() {
+        startActivity(
+            Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts("package", packageName, null),
+            ),
+        )
+    }
+
     /** Re-reads every stored value into the views and the service status. */
     private fun refreshUi() {
+        val active = isServiceActive()
         findViewById<TextView>(R.id.status_text)
-            .setText(if (isServiceActive()) R.string.status_active else R.string.status_inactive)
+            .setText(if (active) R.string.status_active else R.string.status_inactive)
+
+        // T09 dead-service warning (PRD R2): shown when the service reads as inactive
+        // although it was active before. The flag is never cleared (Prefs), so the
+        // warning is a state statement that clears itself once the service is active
+        // again; it re-reads here only — onResume, no polling (NFR-1).
+        findViewById<TextView>(R.id.dead_service_warning).visibility =
+            if (!active && Prefs.wasServiceActive(this)) View.VISIBLE else View.GONE
 
         findViewById<RadioGroup>(R.id.size_group).check(
             when (Prefs.sizePreset(this)) {

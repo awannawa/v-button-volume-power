@@ -1,6 +1,6 @@
 # T09: Vivo resilience and performance
 
-Status: TODO
+Status: done (2026-11-01, orchestrator-audited; measurements need device)
 Dependencies: T08
 
 ## Goal
@@ -38,4 +38,5 @@ Dependencies: T08
 
 ## Notes
 
-- (to be filled in by the worker)
+- (orchestrator, 2026-11-01) Implemented and reviewed clean. Vivo guide (3 steps + Battery-optimization and App-info buttons, fallback on ActivityNotFoundException); dead-service warning via was_service_active pref (set TRUE in onServiceConnected, never cleared — warning is a neutral state statement). Idle audit (a)-(f) all PASS (independently verified by review); ACTION_MOVE zero-allocation confirmed. Ruling correction: the Settings action is ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS (the named ACTION_IGNORE_BATTERY_OPTIMIZATIONS does not exist in the SDK — verified against android.jar 35).
+- (orchestrator, 2026-11-01) Documented limitation (ruled acceptable): bare force-stop keeps the secure listing, so status reads Active and the dead-service warning does not trigger for force-stop alone — it catches revoke/kill-and-disable (the Funtouch pattern). Self-heals on next app open. Device tests 3 and 7b validate empirically. Deferred minors: WAS_SERVICE_ACTIVE_DEFAULT const could be private; openAppInfo lacks the same ActivityNotFoundException guard the battery button has; T08's onboarding_vivo_helper line now duplicates the guide (delete in final review).
