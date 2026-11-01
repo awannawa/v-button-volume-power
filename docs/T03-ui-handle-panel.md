@@ -1,43 +1,49 @@
-# T03: UI handle dan panel
+# T03: Handle and panel UI
 
 Status: TODO
-Dependensi: T02
+Dependencies: T02
+Required reading: `DESIGN.md`, `docs/virtual-buttons/01-ui-spec.md`
+Required skills: andrej-karpathy-skills, hallmark (see `AGENTS.md`)
 
-## Tujuan
+## Goal
 
-- Mengganti placeholder dengan `OverlayView` berisi handle tipis dan panel tombol vertikal, lengkap dengan dua state.
+- Replace the placeholder with an `OverlayView` containing a thin handle and a vertical button panel, with both states.
 
-## Lingkup
+## Scope
 
-- Dikerjakan: tampilan, ikon, state collapsed dan expanded, animasi, ukuran jendela.
-- Tidak dikerjakan: gesture (T04), aksi tombol (T06), drag (T05).
+- In scope: visuals, icons, collapsed and expanded states, animation, window size.
+- Out of scope: gestures (T04), button actions (T06), drag (T05).
 
-## Langkah implementasi
+## Implementation steps
 
-- Baca `01-ui-spec.md`, lalu salin ikon dari `assets/icons/android/` ke `app/src/main/res/drawable/`.
-- Buat `OverlayView : FrameLayout` berisi `HandleView` dan `PanelView`.
-- `HandleView`: custom View yang menggambar bar 5dp x 72dp (fill, border, dan sudut sesuai token di `01-ui-spec.md`) di tepi kanan, `alpha` dari pengaturan (default 0.6), area sentuh 24dp lebar.
-- `PanelView`: LinearLayout vertikal dengan 3 tombol (Vol +, Vol -, Power) berukuran sesuai preset S, M, atau L, background card sesuai token, ikon `ic_volume_up`, `ic_volume_down`, `ic_power` dengan warna lewat `imageTintList`.
-- State: `setExpanded(Boolean)` mengubah visibilitas, ukuran `LayoutParams` (24dp saat collapsed, lebar panel sesuai preset saat expanded), dan memanggil `updateViewLayout`.
-- Animasi `translationX` sekitar 150 ms dengan `ViewPropertyAnimator`, tanpa animator berkelanjutan.
-- Tambahkan `contentDescription` pada tiap tombol.
-- Semua ukuran lewat helper `dp()`.
+- Read `01-ui-spec.md`, then copy the icons from `assets/icons/android/` into `app/src/main/res/drawable/`.
+- Create `OverlayView : FrameLayout` containing a `HandleView` and a `PanelView`.
+- `HandleView`: a custom View that draws a 5dp x 72dp bar (fill, border, and corners per `DESIGN.md`) on the right edge, with `alpha` from the settings (default 0.6) and a 24dp wide touch area.
+- `PanelView`: a vertical LinearLayout with 3 buttons (Vol +, Vol -, Power) sized by the S, M, or L preset, a card background per `DESIGN.md`, and the icons `ic_volume_up`, `ic_volume_down`, `ic_power` colored through `imageTintList`.
+- Define the panel buttons as a list of `ButtonSpec` (see `AGENTS.md`), not as hardcoded views.
+- State: `setExpanded(Boolean)` changes visibility and the `LayoutParams` size (24dp while collapsed, the preset's panel width while expanded) and calls `updateViewLayout`.
+- Provide `applyConfig()` so size, opacity, and other settings can be applied later without recreating the view.
+- Animate `translationX` for about 150 ms with `ViewPropertyAnimator`. No continuous animators.
+- Add a `contentDescription` to every button.
+- Express every size through a `dp()` helper.
 
-## File terkait
+## Related files
 
 - `overlay/OverlayView.kt`, `overlay/HandleView.kt`, `overlay/PanelView.kt`, `res/drawable/ic_*.xml`
 
 ## Acceptance criteria
 
-- Collapsed hanya menampilkan bar tipis di tepi kanan.
-- Expanded menampilkan 3 tombol vertikal menempel di kanan, di posisi Y yang sama dengan handle.
-- Perpindahan state mulus dan tidak menutupi area lain selain lebar window.
+- Collapsed shows only a thin bar on the right edge.
+- Expanded shows 3 vertical buttons attached to the right edge at the same Y position as the handle.
+- Switching state is smooth and the window covers nothing beyond its own width.
 
-## Verifikasi
+## Verification
 
-- Panggil `setExpanded` dari tombol debug sementara, cek kedua state di portrait.
-- Layout Inspector atau screenshot: lebar window sesuai spesifikasi.
+- Run the design check in `DESIGN.md` section 5 and record the result under Notes.
+- Call `setExpanded` from a temporary debug button and check both states in portrait.
+- Layout Inspector or a screenshot: the window width matches the spec.
+- Remove the temporary debug button before marking the task done.
 
-## Catatan
+## Notes
 
-- (isi oleh worker)
+- (to be filled in by the worker)

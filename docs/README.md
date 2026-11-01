@@ -1,82 +1,83 @@
-# README Worker: virtual-buttons
+# Worker README: virtual-buttons
 
-## Tujuan task
+## Task goal
 
-- Membangun app Android native (Kotlin) berisi tombol virtual Volume +, Volume -, dan Power sebagai overlay di tepi kanan layar.
-- Target perangkat utama: Vivo T1 Pro. Detail lengkap ada di `00-main-task.md`.
+- Build a native Android app (Kotlin) with virtual Volume +, Volume -, and Power buttons as an overlay on the right edge of the screen.
+- Primary target device: Vivo T1 Pro. Full details are in `00-main-task.md`.
 
-## Wajib dibaca sebelum mulai
+## Required reading before you start
 
-- Baca `00-main-task.md` sampai habis (PRD, batasan, risiko, acceptance criteria).
-- Baca `01-ui-spec.md` (ikon, token visual, preset ukuran, aturan responsif). File ikon ada di `assets/icons/`.
-- Baca file task yang akan dikerjakan di folder `tasks/`.
-- Jika project punya `AGENTS.md` atau `SKILL.md`, baca juga dan ikuti aturannya. Path: isi sesuai project.
+- Read `00-main-task.md` completely (PRD, constraints, risks, acceptance criteria).
+- Read `01-ui-spec.md` (icons, size presets, responsive rules). Icon files are in `assets/icons/`.
+- For UI tasks (T03, T05, T07, T08, T11), also read `DESIGN.md` at the project root (locked visual tokens and anti-AI-slop rules) and load the skills named in `AGENTS.md`.
+- Read the task file you are about to work on in the `tasks/` folder.
+- Read `AGENTS.md` at the project root and follow it. If the worker prompt names another `SKILL.md`, read that too.
 
-## Aturan umum
+## General rules
 
-- Satu task dikerjakan sampai selesai dan terverifikasi sebelum pindah ke task berikutnya.
-- Jangan menambah dependency di luar yang diizinkan PRD (maksimal `androidx.core:core-ktx`).
-- Jangan menambah izin `INTERNET` atau library analytics atau iklan.
-- Jangan memakai Compose atau library UI pihak ketiga.
-- Jangan membuat timer, polling, atau receiver yang berjalan terus saat idle.
-- Kode harus kecil, jelas, dan satu file satu tanggung jawab.
-- Semua ukuran dalam dp, jangan hardcode px.
-- Jangan mengubah scope task. Jika menemukan masalah di task lain, catat di bagian Catatan, jangan diperbaiki diam-diam.
+- Finish one task and verify it before moving on to the next.
+- Do not add runtime dependencies beyond what the PRD allows (at most `androidx.core:core-ktx`). `junit` for unit tests is allowed.
+- Do not add the `INTERNET` permission or any analytics or ad library.
+- Do not use Compose or third-party UI libraries.
+- Do not create timers, polling, or receivers that run while idle.
+- Keep code small and clear, with one responsibility per file.
+- Use dp for every dimension and never hardcode px.
+- Do not change the task scope. If you find a problem in another task, note it under Notes and do not fix it silently.
 
-## Urutan implementasi
+## Implementation order
 
-- 1. T01 Setup project dan skeleton
-- 2. T02 AccessibilityService dan window overlay
-- 3. T03 UI handle dan panel
-- 4. T04 Gesture expand dan collapse
-- 5. T06 Aksi volume dan power
-- 6. T05 Drag dan penyimpanan posisi
-- 7. T07 Responsif dan gesture exclusion
-- 8. T08 Pengaturan dan onboarding
-- 9. T09 Ketahanan di Vivo dan performa
-- 10. T10 QA dan rilis APK
-- 11. T11 Opsional (hanya jika diminta)
+- 1. T01 Project setup and skeleton
+- 2. T02 AccessibilityService and overlay window
+- 3. T03 Handle and panel UI
+- 4. T04 Expand and collapse gestures
+- 5. T06 Volume and power actions
+- 6. T05 Drag and position persistence
+- 7. T07 Responsive behavior and gesture exclusion
+- 8. T08 Settings and onboarding
+- 9. T09 Vivo resilience and performance
+- 10. T10 QA and APK release
+- 11. T11 Optional (only when requested)
 
-Catatan urutan: T06 dikerjakan sebelum T05 agar fungsi inti (volume dan power) bisa dipakai lebih cepat.
+Order note: T06 is done before T05 so the core functions (volume and power) become usable sooner.
 
 ## Status tracking
 
-Ubah `[ ]` menjadi `[x]` hanya setelah verifikasi task lulus.
+Change `[ ]` to `[x]` only after the task's verification passes.
 
-- [ ] T01 Setup project dan skeleton
-- [ ] T02 AccessibilityService dan window overlay
-- [ ] T03 UI handle dan panel
-- [ ] T04 Gesture expand dan collapse
-- [ ] T06 Aksi volume dan power
-- [ ] T05 Drag dan penyimpanan posisi
-- [ ] T07 Responsif dan gesture exclusion
-- [ ] T08 Pengaturan dan onboarding
-- [ ] T09 Ketahanan di Vivo dan performa
-- [ ] T10 QA dan rilis APK
-- [ ] T11 Opsional: wake helper dan tombol tambahan
+- [ ] T01 Project setup and skeleton
+- [ ] T02 AccessibilityService and overlay window
+- [ ] T03 Handle and panel UI
+- [ ] T04 Expand and collapse gestures
+- [ ] T06 Volume and power actions
+- [ ] T05 Drag and position persistence
+- [ ] T07 Responsive behavior and gesture exclusion
+- [ ] T08 Settings and onboarding
+- [ ] T09 Vivo resilience and performance
+- [ ] T10 QA and APK release
+- [ ] T11 Optional: wake helper and extra buttons
 
-## Verifikasi
+## Verification
 
-- Setiap task punya bagian Acceptance criteria dan Verifikasi. Jalankan semuanya.
-- Build harus lulus: `./gradlew assembleDebug`.
-- Instal ke perangkat: `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
-- Lihat log: `adb logcat -s VButton`.
-- Jika tidak bisa diuji di perangkat, tulis jelas bagian mana yang belum teruji di Catatan.
+- Every task has Acceptance criteria and Verification sections. Run all of them.
+- The build must pass: `./gradlew assembleDebug`.
+- Install on a device: `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
+- View logs: `adb logcat -s VButton`.
+- If you cannot test on a device, state clearly in Notes which parts are untested.
 
-## Riwayat worker dan handover
+## Worker history and handover
 
-Tambahkan satu entri per sesi kerja, yang terbaru di bawah.
+Add one entry per work session, newest at the bottom.
 
-Template entri:
+Entry template:
 
-- Tanggal:
+- Date:
 - Worker:
-- Task yang dikerjakan:
-- Status: selesai / sebagian / terblokir
-- Yang diubah (file):
-- Yang belum selesai atau perlu dicek:
-- Catatan untuk worker berikutnya:
+- Task worked on:
+- Status: done / partial / blocked
+- Files changed:
+- Unfinished items or things to check:
+- Notes for the next worker:
 
-Riwayat:
+History:
 
-- (kosong)
+- (empty)

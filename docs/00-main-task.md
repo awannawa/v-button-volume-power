@@ -1,99 +1,100 @@
-# PRD dan Main Task: Virtual Button (Volume dan Power)
+# PRD and Main Task: Virtual Button (Volume and Power)
 
-## 1. Ringkasan
+## 1. Summary
 
-- Nama kerja: `vbutton`
-- Jenis: app Android native (Kotlin), berjalan sebagai AccessibilityService dengan overlay di tepi kanan layar.
-- Fungsi: pengganti tombol fisik Volume Up, Volume Down, dan Power yang rusak.
-- Perangkat utama: Vivo T1 Pro (Android 12, Funtouch OS), harus tetap kompatibel dengan perangkat Android lain milik pengguna.
-- Prinsip: tanpa iklan, tanpa internet, tanpa tracking, irit resource, bisa dikustomisasi penuh.
+- Working name: `vbutton`
+- Type: native Android app (Kotlin) running as an AccessibilityService with an overlay on the right edge of the screen.
+- Function: replaces the broken physical Volume Up, Volume Down, and Power buttons.
+- Primary device: Vivo T1 Pro (Android 12, Funtouch OS). It must stay compatible with the owner's other Android devices.
+- Principles: no ads, no internet, no tracking, low resource usage, fully customizable.
 
-## 2. Latar belakang dan masalah
+## 2. Background and problem
 
-- Tombol fisik volume dan power pada HP pengguna rusak sehingga HP sulit dipakai.
-- App virtual button yang ada di Play Store penuh iklan, tidak bisa dikustomisasi, atau tidak stabil di perangkat pengguna.
-- Pengguna ingin app sendiri yang sesuai dengan gaya pakainya dan bekerja baik di perangkatnya.
+- The physical volume and power buttons on the owner's phone are broken, which makes the phone hard to use.
+- Virtual button apps on the Play Store are full of ads, cannot be customized, or are unstable on the owner's device.
+- The owner wants their own app that fits their usage style and works well on their devices.
 
-## 3. Tujuan
+## 3. Goals
 
-- G1: Volume naik, turun, dan akses power bisa dilakukan penuh lewat layar.
-- G2: UI hampir tidak terlihat saat tidak dipakai (hanya handle tipis di tepi kanan).
-- G3: Berjalan terus di background tanpa menguras baterai dan RAM.
-- G4: Responsif di portrait, landscape, dan berbagai ukuran layar.
-- G5: Seluruh perilaku penting bisa diatur pengguna (posisi, ukuran, opasitas, timeout, aksi tombol).
+- G1: Volume up, volume down, and access to power can be done entirely from the screen.
+- G2: The UI is almost invisible when unused (only a thin handle on the right edge).
+- G3: Runs continuously in the background without draining battery or RAM.
+- G4: Responsive in portrait, landscape, and across screen sizes.
+- G5: All important behavior is configurable (position, size, opacity, timeout, button actions).
 
 ## 4. Non-goals (v1)
 
-- Tidak menyalakan layar dari kondisi mati (tidak bisa lewat accessibility service, lihat bagian Risiko dan T11).
-- Tidak ada fitur cloud, akun, analytics, atau iklan.
-- Tidak dirilis ke Play Store (distribusi lewat APK pribadi).
-- Tidak memakai Jetpack Compose atau library UI pihak ketiga.
-- Tidak ada root, tidak ada Shizuku.
+- Does not turn the screen on from the off state (not possible via an accessibility service, see Risks and T11).
+- No cloud features, accounts, analytics, or ads.
+- Not published to the Play Store (distributed as a personal APK).
+- No Jetpack Compose or third-party UI libraries.
+- No root, no Shizuku.
 
-## 5. Target teknis
+## 5. Technical targets
 
-- Bahasa: Kotlin.
-- minSdk 28 (karena `GLOBAL_ACTION_LOCK_SCREEN` dan `TAKE_SCREENSHOT` butuh API 28).
-- targetSdk dan compileSdk: versi stabil terbaru di Android Studio yang dipakai.
-- UI: View biasa dan Canvas, tanpa Compose, tanpa AppCompat jika memungkinkan.
-- Dependency: maksimal `androidx.core:core-ktx`. Lebih baik nol dependency.
-- Izin manifest: tidak ada `INTERNET`. Hanya `VIBRATE` (opsional untuk haptic) dan izin bawaan service accessibility.
+- Language: Kotlin.
+- minSdk 28 (because `GLOBAL_ACTION_LOCK_SCREEN` and `TAKE_SCREENSHOT` require API 28).
+- targetSdk and compileSdk: the latest stable version supported by the Android Studio in use.
+- UI: plain Views and Canvas, no Compose, no AppCompat if possible.
+- Runtime dependencies: at most `androidx.core:core-ktx`. Zero dependencies is preferred. `junit` is allowed via `testImplementation` for unit tests.
+- Manifest permissions: no `INTERNET`. Only `VIBRATE` (optional, for haptics) and the permissions inherent to an accessibility service.
 
-## 6. Skenario pengguna
+## 6. User scenarios
 
-- S1: Pengguna menyentuh handle tipis di kanan, panel tombol muncul, pengguna menekan Volume +, panel menutup sendiri setelah beberapa detik.
-- S2: Pengguna menahan handle, handle bisa digeser naik turun ke posisi yang nyaman, posisi tersimpan.
-- S3: Pengguna menekan Power sekali, layar terkunci. Menahan Power membuka menu power (matikan dan restart).
-- S4: Pengguna memutar HP ke landscape, handle tetap menempel di kanan dan posisinya tetap di dalam layar.
-- S5: Pengguna menahan Volume + atau Volume -, volume berubah berulang sampai tombol dilepas.
+- S1: The user touches the thin handle on the right, the button panel appears, the user presses Volume +, and the panel closes itself after a few seconds.
+- S2: The user long-presses the handle and can drag it up or down to a comfortable position. The position is saved.
+- S3: The user taps Power once and the screen locks. Long-pressing Power opens the system power menu.
+- S4: The user rotates the phone to landscape. The handle stays on the right edge and remains inside the screen.
+- S5: The user holds Volume + or Volume -, and the volume keeps changing until the button is released.
 
-## 7. Requirement fungsional
+## 7. Functional requirements
 
-- FR-1: Service accessibility menampilkan overlay yang selalu ada di semua app setelah diaktifkan.
-- FR-2: State collapsed: hanya handle tipis menempel di tepi kanan.
-- FR-3: State expanded: panel vertikal menempel di tepi kanan berisi Volume +, Volume -, dan Power, muncul di posisi vertikal handle.
-- FR-4: Expand dipicu oleh tap singkat pada handle atau swipe ke kiri pada handle.
-- FR-5: Collapse otomatis setelah N detik tanpa interaksi (default 3 detik, bisa diatur) atau saat tap di luar panel.
-- FR-6: Long press pada handle masuk mode drag, handle hanya bergeser vertikal (sumbu Y), posisi disimpan saat dilepas.
-- FR-7: Volume +/-: ubah volume stream yang sedang aktif dan tampilkan indikator volume sistem. Tahan untuk mengulang.
-- FR-8: Power tap: kunci layar. Power long press: tampilkan menu power sistem.
-- FR-9: Feedback haptic singkat saat tombol ditekan (bisa dimatikan).
-- FR-10: Layar pengaturan: status service, ukuran, opasitas, timeout auto-collapse, haptic, reset posisi.
-- FR-11: Perubahan pengaturan langsung diterapkan ke overlay tanpa restart service.
-- FR-12: Onboarding yang mengarahkan pengguna mengaktifkan service dan mengizinkan restricted settings jika diperlukan.
+- FR-1: After it is enabled, the accessibility service shows an overlay that is always present across all apps.
+- FR-2: Collapsed state: only a thin handle attached to the right edge.
+- FR-3: Expanded state: a vertical panel attached to the right edge containing Volume +, Volume -, and Power, appearing at the handle's vertical position.
+- FR-4: Expanding is triggered by a short tap on the handle or a swipe to the left on the handle.
+- FR-5: The panel collapses automatically after N seconds without interaction (default 3 seconds, configurable) or on a tap outside the panel.
+- FR-6: A long press on the handle enters drag mode. The handle moves only vertically (Y axis) and the position is saved on release.
+- FR-7: Volume +/-: change the volume of the currently active stream and show the system volume indicator. Hold to repeat.
+- FR-8: Power tap: lock the screen. Power long press: show the system power menu.
+- FR-9: Short haptic feedback when a button is pressed (can be turned off).
+- FR-10: A settings screen: service status, size, opacity, auto-collapse timeout, haptics, reset position.
+- FR-11: Setting changes apply to the overlay immediately without restarting the service.
+- FR-12: Onboarding that guides the user to enable the service and allow restricted settings when needed.
 
-## 8. Requirement non-fungsional
+## 8. Non-functional requirements
 
-- NFR-1 (CPU): service tidak menerima event accessibility apa pun dan tidak ada polling atau timer berjalan saat idle.
-- NFR-2 (RAM): target di bawah 40 MB PSS saat idle (ukur dengan `dumpsys meminfo`).
-- NFR-3 (Baterai): tidak muncul sebagai konsumen baterai signifikan di statistik baterai.
-- NFR-4 (Latensi): dari sentuhan ke aksi (volume berubah) di bawah 100 ms.
-- NFR-5 (Ukuran): APK release di bawah 1 MB jika memungkinkan (R8 dan shrinkResources aktif).
-- NFR-6 (Ketahanan): service bertahan setelah reboot, rotasi, dan sesi pemakaian berjam-jam di Funtouch OS.
-- NFR-7 (Privasi): tidak membaca isi layar. `canRetrieveWindowContent=false`.
-- NFR-8 (Aksesibilitas): area sentuh minimal 48dp untuk tombol di panel, `contentDescription` terisi.
-- NFR-9 (Responsif): tampilan sesuai `01-ui-spec.md` di portrait, landscape, tiga preset ukuran, berbagai display size, dan bahasa RTL.
+- NFR-1 (CPU): the service receives no accessibility events and runs no polling or timers while idle.
+- NFR-2 (RAM): under 40 MB PSS when idle (measure with `dumpsys meminfo`).
+- NFR-3 (Battery): does not appear as a significant battery consumer in battery statistics.
+- NFR-4 (Latency): under 100 ms from touch to action (volume changes).
+- NFR-5 (Size): release APK under 1 MB if possible (R8 and shrinkResources enabled).
+- NFR-6 (Resilience): the service survives reboot, rotation, and hours-long usage sessions on Funtouch OS.
+- NFR-7 (Privacy): never reads screen content. `canRetrieveWindowContent=false`.
+- NFR-8 (Accessibility): touch targets of at least 48dp for panel buttons, `contentDescription` set.
+- NFR-9 (Responsive): the UI follows `01-ui-spec.md` in portrait, landscape, the three size presets, various display sizes, and RTL languages.
+- NFR-10 (Design quality): the overlay and settings screen follow `DESIGN.md` and pass its design check (section 5), with no generic AI-generated styling.
 
-## 9. Spesifikasi UI/UX
+## 9. UI/UX specification
 
-- Collapsed: bar tipis terlihat 5dp lebar dan 72dp tinggi, sudut membulat, opasitas default 60 persen (bisa diatur). Area sentuh 24dp lebar supaya mudah dikenai.
-- Expanded: card vertikal semi-transparan, lebar 56 sampai 64dp, berisi 3 tombol 48 sampai 56dp tersusun vertikal (Vol +, Vol -, Power) sesuai preset ukuran, menempel di tepi kanan di posisi Y handle.
-- Gaya: minimalis, ikon vector monokrom, tanpa teks, sudut membulat, tanpa bayangan berat. Token visual, preset ukuran, dan aturan responsif lengkap ada di `01-ui-spec.md`. File ikon ada di `assets/icons/`.
-- Animasi: slide dari kanan (`translationX`) sekitar 150 ms, tanpa animasi berat atau blur.
-- Mode drag: handle sedikit membesar dan opasitas naik sebagai tanda aktif, haptic singkat saat masuk mode drag.
-- Posisi Y disimpan sebagai rasio dari area aman (bukan px) lalu di-clamp agar panel tidak keluar dari layar dan tidak menutupi status bar atau navigation bar.
+- Collapsed: a thin bar, 5dp wide and 72dp tall when visible, with rounded corners and a default opacity of 60 percent (configurable). The touch area is 24dp wide so it is easy to hit.
+- Expanded: a vertical semi-transparent card, 56 to 64dp wide, containing 3 buttons of 48 to 56dp stacked vertically (Vol +, Vol -, Power) depending on the size preset, attached to the right edge at the handle's Y position.
+- Style: minimalist, monochrome vector icons, no text, rounded corners, no heavy shadows. Locked visual tokens and the anti-AI-slop rules are in `DESIGN.md` at the project root. Size presets and responsive rules are in `01-ui-spec.md`. Icon files are in `assets/icons/`.
+- Animation: slide in from the right (`translationX`) in about 150 ms, no heavy animation or blur.
+- Drag mode: the handle grows slightly and its opacity increases to show it is active, with a short haptic when entering drag mode.
+- The Y position is stored as a ratio of the safe area (not px) and then clamped so the panel never leaves the screen or covers the status bar or navigation bar.
 
-## 10. Arsitektur singkat
+## 10. Short architecture
 
-- `VButtonService` (AccessibilityService): memegang WindowManager, menambah dan menghapus overlay, menerima aksi global.
-- `OverlayView` (FrameLayout): berisi `HandleView` dan `PanelView`, mengelola state collapsed atau expanded.
-- `GestureController`: GestureDetector untuk tap, fling kiri, long press, dan drag.
-- `Actions`: pembungkus `AudioManager` dan `performGlobalAction`.
-- `Prefs`: SharedPreferences untuk posisi dan pengaturan, dengan listener agar overlay bisa live update.
-- `SettingsActivity`: UI pengaturan dan onboarding.
-- Window: `TYPE_ACCESSIBILITY_OVERLAY`, flag `FLAG_NOT_FOCUSABLE`, gravity `RIGHT or TOP` (bukan `END`, supaya tidak pindah ke kiri di bahasa RTL), lebar sempit saat collapsed.
+- `VButtonService` (AccessibilityService): owns the WindowManager, adds and removes the overlay, and performs global actions.
+- `OverlayView` (FrameLayout): contains `HandleView` and `PanelView` and manages the collapsed or expanded state.
+- `GestureController`: a GestureDetector for tap, left fling, long press, and drag.
+- `Actions`: a wrapper around `AudioManager` and `performGlobalAction`.
+- `Prefs`: SharedPreferences for position and settings, with a listener so the overlay can update live.
+- `SettingsActivity`: the settings UI and onboarding.
+- Window: `TYPE_ACCESSIBILITY_OVERLAY`, flag `FLAG_NOT_FOCUSABLE`, gravity `RIGHT or TOP` (not `END`, so it does not move to the left in RTL languages), and a narrow width while collapsed.
 
-## 11. Struktur project yang disarankan
+## 11. Suggested project structure
 
 - `app/src/main/java/.../VButtonService.kt`
 - `app/src/main/java/.../overlay/OverlayView.kt`
@@ -102,48 +103,49 @@
 - `app/src/main/java/.../Prefs.kt`
 - `app/src/main/java/.../SettingsActivity.kt`
 - `app/src/main/res/xml/accessibility_service_config.xml`
-- `app/src/main/res/drawable/` (ikon vector)
+- `app/src/main/res/drawable/` (vector icons)
 
-## 12. Risiko dan mitigasi
+## 12. Risks and mitigations
 
-- R1: Gesture Back di tepi kanan bentrok dengan swipe ke kiri. Mitigasi: `systemGestureExclusionRects` pada overlay (batas sekitar 200dp tinggi per sisi), area sentuh handle dibuat 24dp.
-- R2: Funtouch OS mematikan service di background. Mitigasi: panduan Autostart, battery unrestricted, kunci di Recents, deteksi service mati di SettingsActivity.
-- R3: Android 13 ke atas memblokir accessibility untuk APK sideload (Restricted Settings). Mitigasi: onboarding menjelaskan App info, menu titik tiga, lalu Allow restricted settings.
-- R4: Layar mati tidak bisa dinyalakan oleh overlay. Mitigasi: double-tap to wake bawaan Vivo, colok charger, fingerprint, atau wake helper opsional di T11.
-- R5: Overlay menghalangi sentuhan di app lain. Mitigasi: window collapsed hanya selebar area sentuh handle, tidak pernah fullscreen.
-- R6: Perilaku `GLOBAL_ACTION_POWER_DIALOG` dan lock screen bisa beda di Vivo. Mitigasi: uji langsung di perangkat, sediakan fallback atau pengaturan aksi.
-- R7: Bug service membuat HP sulit dipakai. Mitigasi: area overlay kecil, service bisa dimatikan lewat Settings, Accessibility.
+- R1: The Back gesture on the right edge conflicts with a swipe to the left. Mitigation: `systemGestureExclusionRects` on the overlay (limit of about 200dp height per edge) and a 24dp handle touch area.
+- R2: Funtouch OS kills the service in the background. Mitigation: guidance for Autostart, unrestricted battery usage, and locking the app in Recents, plus detecting a dead service in SettingsActivity.
+- R3: Android 13 and newer block accessibility for sideloaded APKs (Restricted Settings). Mitigation: onboarding explains App info, the three-dot menu, then Allow restricted settings.
+- R4: The overlay cannot turn on a screen that is off. Mitigation: Vivo's built-in double-tap to wake, plugging in a charger, fingerprint, or the optional wake helper in T11.
+- R5: The overlay blocks touches in other apps. Mitigation: the collapsed window is only as wide as the handle's touch area and is never fullscreen.
+- R6: `GLOBAL_ACTION_POWER_DIALOG` and lock screen may behave differently on Vivo. Mitigation: test directly on the device and provide a fallback or a setting for the action.
+- R7: A service bug makes the phone hard to use. Mitigation: a small overlay area, and the service can be disabled via Settings, Accessibility.
 
-## 13. Acceptance criteria global
+## 13. Global acceptance criteria
 
-- AC-1: Setelah service diaktifkan, handle muncul di tepi kanan di semua app dan tetap ada setelah reboot.
-- AC-2: Tap atau swipe kiri membuka panel, auto-collapse bekerja sesuai timeout.
-- AC-3: Long press lalu geser memindahkan handle secara vertikal dan posisinya tersimpan setelah service restart.
-- AC-4: Vol +/- mengubah volume dan menampilkan indikator sistem, tahan untuk mengulang.
-- AC-5: Power tap mengunci layar, Power long press membuka menu power.
-- AC-6: Rotasi ke landscape tidak membuat handle atau panel keluar layar.
-- AC-7: Tidak ada izin `INTERNET` di manifest final.
-- AC-8: Memenuhi target NFR-1 sampai NFR-5 yang terukur.
+- AC-1: After the service is enabled, the handle appears on the right edge in all apps and remains after a reboot.
+- AC-2: A tap or a left swipe opens the panel, and auto-collapse works according to the timeout.
+- AC-3: A long press followed by a drag moves the handle vertically, and the position is kept after the service restarts.
+- AC-4: Vol +/- change the volume and show the system indicator, and holding repeats the change.
+- AC-5: Power tap locks the screen and Power long press opens the power menu.
+- AC-6: Rotating to landscape does not push the handle or panel off the screen.
+- AC-7: The final manifest has no `INTERNET` permission.
+- AC-8: Measurable targets NFR-1 through NFR-5 are met.
+- AC-9: The overlay and settings screen pass the design check in `DESIGN.md` section 5.
 
-## 14. Daftar child task
+## 14. Child task list
 
-- T01: Setup project dan skeleton
-- T02: AccessibilityService dan window overlay
-- T03: UI handle dan panel
-- T04: Gesture expand dan collapse
-- T05: Drag dan penyimpanan posisi
-- T06: Aksi volume dan power
-- T07: Responsif dan gesture exclusion
-- T08: Pengaturan dan onboarding
-- T09: Ketahanan di Vivo dan performa
-- T10: QA dan rilis APK
-- T11: Opsional: wake helper dan tombol tambahan
+- T01: Project setup and skeleton
+- T02: AccessibilityService and overlay window
+- T03: Handle and panel UI
+- T04: Expand and collapse gestures
+- T05: Drag and position persistence
+- T06: Volume and power actions
+- T07: Responsive behavior and gesture exclusion
+- T08: Settings and onboarding
+- T09: Vivo resilience and performance
+- T10: QA and APK release
+- T11: Optional: wake helper and extra buttons
 
-Detail ada di folder `tasks/`. Panduan worker ada di `README.md`. Spesifikasi ikon dan responsif ada di `01-ui-spec.md`.
+Details are in the `tasks/` folder. The worker guide is in `README.md`. The icon and responsive specs are in `01-ui-spec.md`. The visual rules are in `DESIGN.md`.
 
-## 15. Keputusan terbuka
+## 15. Open decisions
 
-- (Selesai) Ikon tombol: SVG dan VectorDrawable sendiri di `assets/icons/`.
-- Perlu tombol Mute di panel v1 atau cukup di T11.
-- Package name final dan nama app.
-- Perlu mode kiri (handle di sisi kiri) sebagai opsi pengaturan atau tetap kanan saja.
+- (Done) Button icons: custom SVG and VectorDrawable in `assets/icons/`.
+- Whether the Mute button belongs in v1 or only in T11.
+- Final package name and app name.
+- Whether a left-side mode (handle on the left edge) should be a setting or the app stays right-only.

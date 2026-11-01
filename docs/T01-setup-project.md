@@ -1,44 +1,44 @@
-# T01: Setup project dan skeleton
+# T01: Project setup and skeleton
 
 Status: TODO
-Dependensi: tidak ada
+Dependencies: none
 
-## Tujuan
+## Goal
 
-- Project Android Kotlin yang bisa build dan terinstal, siap menjadi dasar task berikutnya.
+- An Android Kotlin project that builds and installs, ready to serve as the foundation for the following tasks.
 
-## Lingkup
+## Scope
 
-- Dikerjakan: struktur project, Gradle, manifest, resource dasar, konfigurasi release kecil.
-- Tidak dikerjakan: service, overlay, atau logika apa pun.
+- In scope: project structure, Gradle, manifest, basic resources, small release configuration.
+- Out of scope: the service, the overlay, or any logic.
 
-## Langkah implementasi
+## Implementation steps
 
-- Buat project Empty Views Activity (Kotlin), tentukan package dan nama app (lihat Keputusan terbuka di PRD).
-- Atur `minSdk 28`, `targetSdk` dan `compileSdk` ke versi stabil terbaru.
-- Hapus dependency yang tidak perlu (AppCompat, Material, ConstraintLayout) jika tidak dipakai. Sisakan paling banyak `core-ktx`.
-- Aktifkan R8 pada release: `isMinifyEnabled = true`, `isShrinkResources = true`.
-- Pastikan manifest tidak memiliki izin `INTERNET`.
-- Tambahkan `SettingsActivity` kosong sebagai launcher.
-- Siapkan ikon launcher sederhana (adaptive icon vector).
-- Buat `Prefs.kt` kosong (object dengan nama file SharedPreferences) sebagai placeholder.
+- Create an Empty Views Activity project (Kotlin) and choose the package and app name (see Open decisions in the PRD).
+- Set `minSdk 28` and set `targetSdk` and `compileSdk` to the latest stable version.
+- Remove unnecessary dependencies (AppCompat, Material, ConstraintLayout) if they are not used. Keep at most `core-ktx` for runtime, and `junit` via `testImplementation` for unit tests.
+- Enable R8 for release: `isMinifyEnabled = true`, `isShrinkResources = true`.
+- Make sure the manifest does not contain the `INTERNET` permission.
+- Add an empty `SettingsActivity` as the launcher.
+- Prepare a simple launcher icon (adaptive icon vector).
+- Create an empty `Prefs.kt` (an object holding the SharedPreferences file name) as a placeholder.
 
-## File terkait
+## Related files
 
-- `build.gradle.kts` (app dan root), `AndroidManifest.xml`, `SettingsActivity.kt`, `Prefs.kt`
+- `build.gradle.kts` (app and root), `AndroidManifest.xml`, `SettingsActivity.kt`, `Prefs.kt`
 
 ## Acceptance criteria
 
-- Build debug dan release lulus.
-- App terinstal dan membuka layar kosong tanpa crash.
-- Manifest tidak berisi `INTERNET`.
+- Debug and release builds pass.
+- The app installs and opens a blank screen without crashing.
+- The manifest does not contain `INTERNET`.
 
-## Verifikasi
+## Verification
 
 - `./gradlew assembleDebug assembleRelease`
-- `adb install -r ...` lalu buka app.
-- `aapt dump permissions` pada APK, pastikan tidak ada `INTERNET`.
+- `adb install -r ...` then open the app.
+- Run `aapt dump permissions` on the APK and confirm there is no `INTERNET`.
 
-## Catatan
+## Notes
 
-- (isi oleh worker)
+- (to be filled in by the worker)

@@ -1,59 +1,56 @@
-# UI Spec: Ikon, Visual, dan Responsifitas
+# UI Spec: Icons, Visuals, and Responsive Behavior
 
-Dokumen ini melengkapi `00-main-task.md` bagian 9. Jika ada selisih, dokumen ini yang dipakai.
+This document complements section 9 of `00-main-task.md`. If the two differ, this document wins.
 
-## 1. Ikon
+Visual tokens (colors, borders, radii, motion, state visuals) live in `DESIGN.md` and win over this document for anything about look and feel.
 
-- Sumber ikon: SVG di `assets/icons/svg/` (viewBox 24x24, stroke 2, round cap dan round join, tanpa fill).
-- Android tidak membaca SVG langsung. Pakai VectorDrawable yang setara di `assets/icons/android/`, salin ke `app/src/main/res/drawable/`.
-- Jika mengubah SVG, konversi lewat Android Studio: New, Vector Asset, Local file (SVG), lalu cek hasilnya sama dengan file di `assets/icons/android/`.
-- Warna di file ikon selalu putih (`#FFFFFFFF`). Warna akhir diatur lewat `imageTintList` agar bisa dikustomisasi dari pengaturan.
-- Daftar ikon v1: `ic_volume_up` (speaker dan tanda plus), `ic_volume_down` (speaker dan tanda minus), `ic_power`.
-- Ikon tambahan untuk T11 (mute, screenshot, home, back, recents) dibuat dengan gaya yang sama: grid 24, stroke 2, padding 2, round cap.
-- Tidak ada teks di tombol. `contentDescription` wajib diisi untuk setiap tombol.
+## 1. Icons
 
-## 2. Token visual
+- Icon source: SVG in `assets/icons/svg/` (viewBox 24x24, stroke 2, round cap and round join, no fill).
+- Android does not read SVG directly. Use the equivalent VectorDrawables in `assets/icons/android/` and copy them to `app/src/main/res/drawable/`.
+- If you modify an SVG, convert it in Android Studio via New, Vector Asset, Local file (SVG), then confirm the result matches the files in `assets/icons/android/`.
+- Icon files are always white (`#FFFFFFFF`). The final color is applied through `imageTintList` so it can be customized from settings.
+- v1 icons: `ic_volume_up` (speaker and plus sign), `ic_volume_down` (speaker and minus sign), `ic_power`.
+- Extra icons for T11 (mute, screenshot, home, back, recents) follow the same style: 24 grid, stroke 2, 2 padding, round cap.
+- Buttons have no text. `contentDescription` is mandatory on every button.
 
-- Handle: fill `#FF202124`, border 1dp `#66FFFFFF`, sudut membulat penuh, lebar terlihat 5dp, tinggi 72dp, `alpha` mengikuti pengaturan (default 0.6, rentang 0.3 sampai 1.0).
-- Alasan handle gelap dengan border terang: tetap terlihat di app berlatar putih maupun hitam.
-- Panel: fill `#CC202124` (sekitar 80 persen), border 1dp `#33FFFFFF`, radius sudut 16dp, tanpa elevation atau bayangan.
-- Ikon: putih, ukuran sesuai preset.
-- Tombol ditekan: lingkaran highlight `#33FFFFFF` (ripple sederhana atau state pressed), tanpa animasi panjang.
-- Mode drag: handle `scaleX` 1.5 dan `alpha` 1.0 selama drag.
-- Animasi buka dan tutup: `translationX` 150 ms dengan `DecelerateInterpolator`.
+## 2. Visual tokens
 
-## 3. Preset ukuran (satuan dp)
+- Colors, borders, corner radii, motion, and state visuals are defined only in `DESIGN.md`. Do not copy token values into code comments or other docs.
+- Handle geometry: 5dp visible width, 72dp height, 24dp touch width, and `alpha` follows the setting (default 0.6, range 0.3 to 1.0).
 
-- Preset S: tombol 48, ikon 22, tinggi panel 164, lebar panel 56.
-- Preset M (default): tombol 52, ikon 24, tinggi panel 176, lebar panel 60.
-- Preset L: tombol 56, ikon 26, tinggi panel 188, lebar panel 64.
-- Rumus tinggi panel: 3 x tombol + 2 x gap 4 + 2 x padding vertikal 6.
-- Rumus lebar panel: tombol + 2 x padding horizontal 4.
-- Semua tinggi panel di bawah 200dp supaya muat dalam batas `systemGestureExclusionRects`.
-- Tombol minimal 48dp (sesuai NFR-8).
-- Lebar window saat collapsed: 24dp. Saat expanded: lebar panel sesuai preset.
+## 3. Size presets (units in dp)
 
-## 4. Aturan responsif
+- Preset S: button 48, icon 22, panel height 164, panel width 56.
+- Preset M (default): button 52, icon 24, panel height 176, panel width 60.
+- Preset L: button 56, icon 26, panel height 188, panel width 64.
+- Panel height formula: 3 x button + 2 x gap 4 + 2 x vertical padding 6.
+- Panel width formula: button + 2 x horizontal padding 4.
+- Every panel height stays under 200dp so it fits within the `systemGestureExclusionRects` limit.
+- Buttons are at least 48dp (per NFR-8).
+- Window width while collapsed: 24dp. While expanded: the panel width of the active preset.
 
-- Semua dimensi ditulis dalam dp. Nilai px dihitung dari density saat runtime dan tidak di-cache melewati perubahan konfigurasi.
-- Gunakan `Gravity.RIGHT or Gravity.TOP`, bukan `END`, agar overlay tidak pindah ke kiri saat bahasa sistem RTL.
-- Area aman: ambil insets `systemBars` dan `displayCutout` lewat `WindowMetrics` (API 30 ke atas). Fallback untuk API 28 dan 29: `DisplayMetrics` dan resource `status_bar_height`.
-- Rentang Y valid: dari `insetTop + 8dp` sampai `tinggiLayar - insetBottom - tinggiPanel - 8dp`.
-- Simpan posisi sebagai rasio `yRatio` (0.0 sampai 1.0) dari rentang Y valid, bukan px. Muat dengan `y = minY + yRatio * (maxY - minY)`. Dengan begitu posisi tetap masuk akal setelah rotasi, ganti display size, atau pindah perangkat.
-- Mode kompak: jika rentang Y valid lebih kecil dari tinggi panel (misalnya landscape), turunkan preset satu tingkat sampai muat, minimal preset S.
-- Offset X: set `lp.x` sama dengan inset kanan (navigation bar di sisi kanan saat landscape mode 3 tombol, atau cutout) agar overlay tidak menimpa area sistem.
-- Display size atau zoom besar: karena memakai dp, ukuran ikut membesar. Aturan mode kompak tetap berlaku.
-- Font scale tidak berpengaruh karena tidak ada teks.
-- Ambang sentuh memakai `ViewConfiguration` (`scaledTouchSlop`, `scaledMinimumFlingVelocity`), bukan angka px tetap.
-- Hitung ulang semua hal di atas saat `onConfigurationChanged` dan saat pengaturan berubah.
-- Window tidak fokus dan tidak ikut di-resize keyboard, sehingga tidak melompat saat keyboard muncul.
+## 4. Responsive rules
 
-## 5. Checklist uji tampilan
+- Write every dimension in dp. Compute px from the density at runtime and never cache px across configuration changes.
+- Use `Gravity.RIGHT or Gravity.TOP`, not `END`, so the overlay does not jump to the left when the system language is RTL.
+- Safe area: get `systemBars` and `displayCutout` insets through `WindowMetrics` (API 30 and above). Fallback for API 28 and 29: `DisplayMetrics` and the `status_bar_height` resource.
+- Valid Y range: from `insetTop + 8dp` to `screenHeight - insetBottom - panelHeight - 8dp`.
+- Store the position as a ratio `yRatio` (0.0 to 1.0) of the valid Y range, not as px. Restore with `y = minY + yRatio * (maxY - minY)`. This keeps the position sensible after rotation, a display size change, or a move to another device.
+- Compact mode: if the valid Y range is smaller than the panel height (for example, short landscape screens), step down one preset at a time until it fits, down to preset S at minimum.
+- X offset: set `lp.x` equal to the right inset (a navigation bar on the right side in landscape with 3-button navigation, or a cutout) so the overlay does not cover system areas.
+- Large display size or zoom: because everything uses dp, sizes scale up with it. The compact mode rule still applies.
+- Font scale has no effect because there is no text.
+- Touch thresholds use `ViewConfiguration` (`scaledTouchSlop`, `scaledMinimumFlingVelocity`), not fixed px values.
+- Recompute everything above in `onConfigurationChanged` and whenever a setting changes.
+- The window is not focusable and is not resized by the keyboard, so it does not jump when the keyboard appears.
 
-- Portrait dan landscape, handle di posisi atas, tengah, dan bawah.
-- Tiga preset ukuran (S, M, L).
-- Background app terang dan gelap (handle dan panel tetap terlihat jelas).
-- Navigasi gesture dan navigasi 3 tombol (di landscape, overlay tidak menimpa navigation bar).
-- Display size kecil dan besar di pengaturan sistem.
-- Bahasa RTL (misalnya Arab) untuk memastikan handle tetap di kanan.
-- App fullscreen (video dan game) dan layar kunci.
+## 5. Visual test checklist
+
+- Portrait and landscape, with the handle at the top, middle, and bottom.
+- All three size presets (S, M, L).
+- Light and dark app backgrounds (the handle and panel must stay clearly visible).
+- Gesture navigation and 3-button navigation (in landscape, the overlay must not cover the navigation bar).
+- Small and large display size in system settings.
+- An RTL language (for example Arabic) to confirm the handle stays on the right.
+- Fullscreen apps (video and games) and the lock screen.

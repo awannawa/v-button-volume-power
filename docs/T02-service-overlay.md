@@ -1,43 +1,43 @@
-# T02: AccessibilityService dan window overlay
+# T02: AccessibilityService and overlay window
 
 Status: TODO
-Dependensi: T01
+Dependencies: T01
 
-## Tujuan
+## Goal
 
-- Service accessibility aktif yang menampilkan satu view overlay di tepi kanan layar di atas semua app.
+- An active accessibility service that shows a single overlay view on the right edge of the screen, on top of all apps.
 
-## Lingkup
+## Scope
 
-- Dikerjakan: deklarasi service, config XML, pembuatan dan penghapusan window overlay, lifecycle.
-- Tidak dikerjakan: tampilan final (T03), gesture (T04), aksi (T06).
+- In scope: service declaration, XML config, creating and removing the overlay window, lifecycle.
+- Out of scope: the final visuals (T03), gestures (T04), and actions (T06).
 
-## Langkah implementasi
+## Implementation steps
 
-- Buat `res/xml/accessibility_service_config.xml`. Jangan set atribut `accessibilityEventTypes` (default 0 artinya tanpa event). Set `canRetrieveWindowContent="false"`, `canPerformGestures="false"`, `accessibilityFeedbackType="feedbackGeneric"`, `description`.
-- Deklarasikan service di manifest dengan `android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"`, intent-filter `android.accessibilityservice.AccessibilityService`, dan meta-data ke config XML.
-- Buat `VButtonService : AccessibilityService`. Kosongkan `onAccessibilityEvent` dan `onInterrupt`.
-- Di `onServiceConnected`: ambil `WindowManager`, buat `LayoutParams` dengan `TYPE_ACCESSIBILITY_OVERLAY`, `FLAG_NOT_FOCUSABLE`, `PixelFormat.TRANSLUCENT`, gravity `END or TOP`, lebar 24dp, tinggi WRAP_CONTENT, lalu `addView` placeholder (kotak berwarna).
-- Di `onDestroy` dan `onUnbind`: `removeView` dengan pengecekan aman (try-catch `IllegalArgumentException`).
-- Simpan referensi service di object singleton ringan (`VButtonService.instance`) untuk dipakai SettingsActivity, set null saat destroy.
+- Create `res/xml/accessibility_service_config.xml`. Do not set the `accessibilityEventTypes` attribute (the default of 0 means no events). Set `canRetrieveWindowContent="false"`, `canPerformGestures="false"`, `accessibilityFeedbackType="feedbackGeneric"`, and a `description`.
+- Declare the service in the manifest with `android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"`, an intent-filter for `android.accessibilityservice.AccessibilityService`, and meta-data pointing to the config XML.
+- Create `VButtonService : AccessibilityService`. Leave `onAccessibilityEvent` and `onInterrupt` empty.
+- In `onServiceConnected`: get the `WindowManager`, build `LayoutParams` with `TYPE_ACCESSIBILITY_OVERLAY`, `FLAG_NOT_FOCUSABLE`, `PixelFormat.TRANSLUCENT`, gravity `RIGHT or TOP`, width 24dp, height WRAP_CONTENT, then `addView` a placeholder (a colored box).
+- In `onDestroy` and `onUnbind`: call `removeView` with a safe check (try-catch `IllegalArgumentException`).
+- Keep a reference to the service in a lightweight singleton (`VButtonService.instance`) for SettingsActivity, and set it to null on destroy.
 
-## File terkait
+## Related files
 
 - `VButtonService.kt`, `accessibility_service_config.xml`, `AndroidManifest.xml`, `strings.xml`
 
 ## Acceptance criteria
 
-- Service muncul di Settings, Accessibility dengan deskripsi.
-- Setelah diaktifkan, placeholder tampil di tepi kanan di semua app.
-- Menonaktifkan service menghapus placeholder tanpa crash.
-- Service tidak menerima event accessibility apa pun.
+- The service appears in Settings, Accessibility with its description.
+- After it is enabled, the placeholder is shown on the right edge in all apps.
+- Disabling the service removes the placeholder without crashing.
+- The service receives no accessibility events.
 
-## Verifikasi
+## Verification
 
-- Aktifkan service, buka beberapa app dan pastikan placeholder tetap ada.
-- `adb logcat` tidak menunjukkan crash saat on/off service.
-- `adb shell dumpsys accessibility` menunjukkan service tanpa event types.
+- Enable the service, open several apps, and confirm the placeholder stays visible.
+- `adb logcat` shows no crash when toggling the service on and off.
+- `adb shell dumpsys accessibility` shows the service with no event types.
 
-## Catatan
+## Notes
 
-- (isi oleh worker)
+- (to be filled in by the worker)
