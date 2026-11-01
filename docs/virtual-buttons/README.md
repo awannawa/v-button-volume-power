@@ -44,7 +44,7 @@ Order note: T06 is done before T05 so the core functions (volume and power) beco
 
 Change `[ ]` to `[x]` only after the task's verification passes.
 
-- [ ] T01 Project setup and skeleton
+- [x] T01 Project setup and skeleton
 - [ ] T02 AccessibilityService and overlay window
 - [ ] T03 Handle and panel UI
 - [ ] T04 Expand and collapse gestures
@@ -80,4 +80,10 @@ Entry template:
 
 History:
 
-- (empty)
+- Date: 2026-11-01
+- Worker: orchestrator-dispatched implementer (fresh subagent session), audited by orchestrator
+- Task worked on: T01 Project setup and skeleton
+- Status: done
+- Files changed: root Gradle files (build.gradle.kts, settings.gradle.kts, gradle.properties), Gradle wrapper 8.9, app/build.gradle.kts, app/proguard-rules.pro, AndroidManifest.xml (zero permissions), Prefs.kt (PREFS_FILE placeholder), SettingsActivity.kt (launcher), launcher icon (adaptive, monochrome per DESIGN.md), strings.xml, .gitignore
+- Unfinished items or things to check: "app installs and opens a blank screen" needs device test (no adb in build env); assembleRelease deliberately not run (forbidden outside T10, ruling in SDD ledger); R8 configured but unverified until T10; Minor parked: explicit Kotlin jvmTarget line (safe while AGP/Kotlin pinned), android:allowBackup decision deferred to T10
+- Notes for the next worker: build env has no system Java/SDK — `source ~/tools/android-env.sh` before every gradle command (JDK 17, Gradle 8.9, SDK 35 at ~/Android/Sdk; local.properties untracked with sdk.dir). Stack: minSdk 28, compileSdk/targetSdk 35, AGP 8.7.3, Kotlin 2.0.21, applicationId com.awannawa.vbutton. Runtime deps: none; junit test-only. Do not run assembleRelease. .superpowers/ is locally excluded via .git/info/exclude
