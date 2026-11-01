@@ -1,6 +1,6 @@
 # T08: Settings and onboarding
 
-Status: TODO
+Status: done (2026-11-01, orchestrator-audited)
 Dependencies: T07
 Required reading: `DESIGN.md`, `docs/virtual-buttons/01-ui-spec.md`
 Required skills: andrej-karpathy-skills, hallmark (see `AGENTS.md`)
@@ -43,4 +43,5 @@ Required skills: andrej-karpathy-skills, hallmark (see `AGENTS.md`)
 
 ## Notes
 
-- (to be filled in by the worker)
+- (orchestrator, 2026-11-01) Implemented and reviewed clean. Settings: plain list, platform widgets, DayNight via values-v29 (DeviceDefault fallback on 28), status = instance OR exact secure-setting match (refresh in onResume), Enable button, Size radios S/M/L, opacity SeekBar 30-100 live readout, timeout SeekBar 1-10s (ruled bounds), Haptics Switch, Reset position, always-on numbered onboarding with (Android 13+) restricted-settings step + one Vivo sentence. Listener paired register/unregister -> applyConfig; applyConfig reads opacity+preset fresh; mid-drag alpha retarget guard (T05 finding) closed; timeout read-at-schedule confirmed. 42 unit tests.
+- (orchestrator, 2026-11-01) Deferred minors: stale doc comments Tokens.kt:34/77 ("arrives in T08"/"T07/T08 make selectable" now past tense — read-only boundary, fix in final review); "M" case maps via Tokens.activePreset default instead of PRESET_M directly (test locks the coupling); redundant refreshUi in onCreate; step-4 copy repeats "Turn the service on"; no duplicate-listener guard on reconnect (near-impossible, idempotent anyway).

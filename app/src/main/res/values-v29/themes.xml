@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      API 29+ variant of the settings theme: DeviceDefault.DayNight follows the
+      system dark mode (DESIGN.md section 3). Resource-qualified, so API 28 devices
+      resolve the values/ fallback and never see this parent.
+    -->
+    <style name="Theme.VButtonSettings" parent="android:Theme.DeviceDefault.DayNight" />
+</resources>

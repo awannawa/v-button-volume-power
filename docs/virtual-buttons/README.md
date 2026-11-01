@@ -51,7 +51,7 @@ Change `[ ]` to `[x]` only after the task's verification passes.
 - [x] T06 Volume and power actions
 - [x] T05 Drag and position persistence
 - [x] T07 Responsive behavior and gesture exclusion
-- [ ] T08 Settings and onboarding
+- [x] T08 Settings and onboarding
 - [ ] T09 Vivo resilience and performance
 - [ ] T10 QA and APK release
 - [ ] T11 Optional: wake helper and extra buttons
@@ -129,3 +129,10 @@ History:
 - Files changed: overlay/SafeArea.kt (WindowMetrics systemBars+displayCutout on API 30+, resource fallback below; pure selectFittingPreset compact mode, floor S; compute() signature unchanged), overlay/OverlayView.kt (gesture exclusion rects in onLayout with API 29 guard, lp.x = right inset, compact preset consumption with parked-translationX refresh, applyConfig runs full recompute), VButtonService.kt (onConfigurationChanged -> recomputeLayout, layoutInDisplayCutoutMode ALWAYS/SHORT_EDGES with rationale), SafeAreaTest.kt (+9 compact-mode tests; 39 total)
 - Unfinished items or things to check: needs device test — rotation at top/middle/bottom, both nav modes, back-gesture exclusion works, RTL keeps handle right, compact mode on short landscape, cutout not clipped in landscape, fullscreen apps + lock screen, split-screen, keyboard, small/large display sizes. PARKED plan-mandated: API 28/29 right-inset = 0 (nav-bar overlap possible on those levels only) — T10 risk list
 - Notes for the next worker (T08): applyConfig() already runs the full recompute (T07 wired it) — extend it to read your new prefs (opacity, preset, timeout, haptics) and it all applies live; register the OnSharedPreferenceChangeListener in VButtonService onServiceConnected and unregister in onDestroy (pair it!). Handle the T05 finding: an applyConfig arriving mid-drag must not let endDrag restore a stale preDragHandleAlpha. Settings copy: sentence case, literal, no emoji (DESIGN.md section 3); typography tokens 20sp/14sp/16sp are in DESIGN.md
+- Date: 2026-11-01
+- Worker: orchestrator-dispatched implementer (fresh subagent session), audited by orchestrator; review clean (no fix round)
+- Task worked on: T08 Settings and onboarding
+- Status: done
+- Files changed: SettingsActivity.kt (status dual-check, Enable, all setting rows, onboarding), res/layout/activity_settings.xml (new), Prefs.kt (size preset + opacity keys/readers/writers, timeout bounds), VButtonService.kt (prefs listener paired register/unregister), overlay/OverlayView.kt (applyConfig reads prefs, mid-drag alpha retarget guard), res/values/strings.xml (all copy), res/values/themes.xml (DayNight v29 + API 28 fallback), SizePresetFromPrefTest.kt (42 total)
+- Unfinished items or things to check: needs device test — clean install to enabled service end to end; restricted-settings step on Android 13+; every setting reflects on the overlay immediately; status active/inactive both ways; day/night; TalkBack on the settings screen
+- Notes for the next worker (T09): dead-service warning needs a "was active" record — the service connect path is the place to set it (keys only in Prefs.kt). The idle audit (no timers/polling/receivers/threads while idle; every Handler callback removed when unused) should re-verify: collapse timer (T04, paired), repeat handler (T06, paired + detach kill), fade animator (T06, detach-cancelled). Vivo guide: use ACTION_IGNORE_BATTERY_OPTIMIZATIONS or app info — do not assume a Vivo-specific intent exists. Measurement commands for the report: adb shell dumpsys meminfo com.awannawa.vbutton (target < 40MB PSS idle) and adb shell dumpsys batterystats

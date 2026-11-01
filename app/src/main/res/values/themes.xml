@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Settings screen theme (DESIGN.md section 3: platform default theme with day and
+      night support, no custom palette). Applied in code via setTheme so the manifest
+      stays untouched. This is the API 28 fallback: plain DeviceDefault — the DayNight
+      variant needs API 29 and lives in values-v29/themes.xml.
+    -->
+    <style name="Theme.VButtonSettings" parent="android:Theme.DeviceDefault" />
+</resources>

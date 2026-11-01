@@ -2,7 +2,9 @@ package com.awannawa.vbutton
 
 import android.accessibilityservice.AccessibilityService
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
@@ -39,11 +41,40 @@ class VButtonService : AccessibilityService() {
     private var windowManager: WindowManager? = null
     private var overlayView: OverlayView? = null
 
+    /**
+     * The Prefs file and its change listener (T08, FR-11), held in fields: the
+     * listener must stay strongly referenced while registered (SharedPreferences
+     * keeps listeners only weakly) and unregistered exactly where it was registered
+     * (AGENTS.md lifecycle). Null while the service is not connected.
+     */
+    private var prefs: SharedPreferences? = null
+    private var prefsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
         windowManager = getSystemService(WindowManager::class.java)
         attachOverlay()
+        registerPrefsListener()
+    }
+
+    /**
+     * T08: live settings (FR-11 — changes apply without restarting the service). Any
+     * Prefs change reaches the overlay through its single applyConfig entry point
+     * (AGENTS.md), which is idempotent and re-reads everything, so no per-key
+     * filtering is needed. Delivery thread: the thread the write was made on — the
+     * only writers are SettingsActivity and the overlay itself, both main-thread
+     * (AGENTS.md threading), so applyConfig always runs there.
+     */
+    private fun registerPrefsListener() {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            // Null overlay: already detached (unbind without destroy); nothing to update.
+            overlayView?.applyConfig()
+        }
+        val prefs = getSharedPreferences(Prefs.PREFS_FILE, Context.MODE_PRIVATE)
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        this.prefs = prefs
+        prefsListener = listener
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
@@ -52,6 +83,9 @@ class VButtonService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        prefsListener?.let { prefs?.unregisterOnSharedPreferenceChangeListener(it) }
+        prefsListener = null
+        prefs = null
         detachOverlay()
         instance = null
         super.onDestroy()

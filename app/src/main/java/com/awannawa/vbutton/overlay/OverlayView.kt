@@ -34,7 +34,8 @@ private const val LOG_TAG = "VButton"
  * Expanding comes from [GestureController] (tap or left fling on the handle, FR-4);
  * dragging comes from the same controller (handle long press, FR-6). Collapsing
  * comes from the auto-collapse timer or a tap outside the panel (ACTION_OUTSIDE,
- * FR-5). Settings (T08) will call [applyConfig]. The panel buttons act through the
+ * FR-5). Settings reach the overlay only through [applyConfig], called by the
+ * service's Prefs listener (T08). The panel buttons act through the
  * [Actions] instance the service passes in (T06); this view never touches
  * AudioManager or the service itself (AGENTS.md).
  */
@@ -82,12 +83,12 @@ class OverlayView(
     private val buttonSpecs: List<ButtonSpec> = defaultButtons()
 
     /**
-     * The preset the overlay currently renders with: [Tokens.activePreset] stepped
-     * down by compact mode (01-ui-spec.md section 4) when this screen is too short
-     * for the panel. Recomputed on every configuration pass ([recomputeLayout]); the
-     * user's desired preset stays [Tokens.activePreset] (T08 owns it) — compact mode
-     * only shrinks, never widens. Read by VButtonService for the window it creates
-     * before this view is attached.
+     * The preset the overlay currently renders with: the user's stored preset (Prefs,
+     * T08) stepped down by compact mode (01-ui-spec.md section 4) when this screen is
+     * too short for the panel. Recomputed on every configuration pass
+     * ([recomputeLayout]); compact mode only shrinks, never widens, and never rewrites
+     * the stored choice. Read by VButtonService for the window it creates before this
+     * view is attached.
      */
     var effectivePreset: Tokens.SizePreset = compactPresetForCurrentScreen()
         private set
@@ -356,13 +357,23 @@ class OverlayView(
 
     /**
      * Single entry point for settings (AGENTS.md): T08 pushes changes here instead of
-     * recreating views. Idempotent. Besides the handle opacity it runs the full
-     * screen-fit pass (01-ui-spec.md section 4: recompute "whenever a setting
-     * changes") — a future preset change lands through the same recompute — so T08
-     * needs no other path into the overlay.
+     * recreating views. Idempotent. Reads every setting it renders from Prefs — the
+     * handle opacity (01-ui-spec.md section 2: alpha follows the setting) and, through
+     * the full screen-fit pass, the size preset (01-ui-spec.md section 4: recompute
+     * "whenever a setting changes") — so T08 needs no other path into the overlay.
+     * The timeout needs no read here: the collapse timer reads it at schedule time.
      */
     fun applyConfig() {
-        handleView.alpha = Tokens.HANDLE_ALPHA_DEFAULT
+        // Percent (per hundred) to alpha fraction; Prefs owns the 30-100 bound.
+        val alpha = Prefs.handleOpacityPercent(context) / 100f
+        if (state == State.Dragging) {
+            // T05 handover: a setting change mid-drag must neither stomp the drag
+            // visuals (DESIGN.md motion: alpha 1.0 while dragging) nor let endDrag
+            // restore a stale preDragHandleAlpha — retarget the restore value instead.
+            preDragHandleAlpha = alpha
+        } else {
+            handleView.alpha = alpha
+        }
         recomputeLayout()
     }
 
@@ -410,14 +421,14 @@ class OverlayView(
      * Compact-mode decision for one inset reading (pure math in
      * SafeArea.selectFittingPreset, JVM-tested): the active preset stepped down while
      * its panel is taller than the space between the system bars and the screen-edge
-     * margins.
+     * margins. The active preset is the user's stored choice (T08), not a constant.
      */
     private fun selectCompactPreset(
         screen: SafeArea.ScreenInsets,
         marginPx: Int,
     ): Tokens.SizePreset = SafeArea.selectFittingPreset(
         availableHeightPx = SafeArea.availableHeightPx(screen, marginPx),
-        activePreset = Tokens.activePreset,
+        activePreset = sizePresetFromPref(Prefs.sizePreset(context)),
         density = resources.displayMetrics.density,
     )
 
@@ -533,4 +544,15 @@ class OverlayView(
             ),
         )
     }
+}
+
+/**
+ * Maps the stored Prefs preset string to the locked preset data (01-ui-spec.md
+ * section 3), falling back to the compiled default (Tokens.activePreset, preset M)
+ * for the absent/unset case. Pure and JVM-tested (AGENTS.md): no Android types.
+ */
+internal fun sizePresetFromPref(value: String): Tokens.SizePreset = when (value) {
+    Prefs.SIZE_PRESET_SMALL -> Tokens.PRESET_S
+    Prefs.SIZE_PRESET_LARGE -> Tokens.PRESET_L
+    else -> Tokens.activePreset // "M" and anything unreadable: the default preset
 }
