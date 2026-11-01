@@ -41,4 +41,5 @@ Dependencies: T03
 
 ## Notes
 
-- (to be filled in by the worker)
+- (orchestrator, 2026-11-01) Lint ClickableViewAccessibility on HandleView is real a11y debt: TalkBack cannot activate the handle (no performClick). Deferred to T07/T08 — NFR-8 requires 48dp targets + contentDescription, not activation. The OverlayView instance of the same warning is a false positive (ACTION_OUTSIDE receiver, no click semantics).
+- (orchestrator, 2026-11-01) T06 access: OverlayView.resetAutoCollapse() is called from within OverlayView when wiring ButtonSpec actions; VButtonService.overlayView stays private. Fling predicate requires horizontal dominance (abs(velocityX) > abs(velocityY)) per FR-4 intent; |vx|==|vy| stays closed (documented in GestureController).

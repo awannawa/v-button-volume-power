@@ -3,15 +3,19 @@ package com.awannawa.vbutton.overlay
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.drawable.GradientDrawable
+import android.view.MotionEvent
 import android.view.View
 
 /**
  * Draws the collapsed handle: the 5dp x 72dp bar on the RIGHT edge of its bounds,
- * while the rest of the view (24dp wide, 01-ui-spec.md section 2) is touch area for
- * the gestures T04 adds. All values come from [Tokens]; the opacity comes from the
- * settings via OverlayView.applyConfig (View.alpha).
+ * while the rest of the view (24dp wide, 01-ui-spec.md section 2) is the touch area
+ * [GestureController] listens to. All values come from [Tokens]; the opacity comes
+ * from the settings via OverlayView.applyConfig (View.alpha).
  */
-class HandleView(context: Context) : View(context) {
+class HandleView(
+    context: Context,
+    private val gestureController: GestureController,
+) : View(context) {
 
     // One drawable per view instance, never shared, so no mutate() is needed.
     private val bar = GradientDrawable().apply {
@@ -36,5 +40,13 @@ class HandleView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         bar.draw(canvas)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        // Forward the raw stream to the gesture controller (AGENTS.md: gesture logic
+        // lives in GestureController, not in Views) and always consume: no touch on
+        // the handle may leak to the app underneath (task T04).
+        gestureController.onTouch(event)
+        return true
     }
 }

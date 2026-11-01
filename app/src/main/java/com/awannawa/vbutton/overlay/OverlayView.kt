@@ -1,10 +1,14 @@
 package com.awannawa.vbutton.overlay
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.MotionEvent
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
+import com.awannawa.vbutton.Prefs
 import com.awannawa.vbutton.R
 
 private const val LOG_TAG = "VButton"
@@ -16,7 +20,10 @@ private const val LOG_TAG = "VButton"
  * (24dp collapsed, active preset's panel width expanded, 01-ui-spec.md section 3)
  * through WindowManager.updateViewLayout.
  *
- * Gestures (T04) will call [setExpanded]; settings (T08) will call [applyConfig].
+ * Expanding comes from [GestureController] (tap or left fling on the handle, FR-4).
+ * Collapsing comes from the auto-collapse timer or a tap outside the panel
+ * (ACTION_OUTSIDE, FR-5). Settings (T08) will call [applyConfig]; T06 calls
+ * [resetAutoCollapse] on every button action.
  */
 class OverlayView(
     context: Context,
@@ -29,7 +36,17 @@ class OverlayView(
      */
     private enum class State { Collapsed, Expanded }
 
-    private val handleView = HandleView(context)
+    /**
+     * FR-5 auto-collapse: at most one pending callback, and only while expanded
+     * (NFR-1). Removed when collapsed, when reset (remove-before-post), and on
+     * detach, so no callback can outlive an expanded, attached overlay.
+     */
+    private val autoCollapseHandler = Handler(Looper.getMainLooper())
+    private val autoCollapseRunnable = Runnable { setExpanded(false) }
+
+    // The controller is created first: HandleView forwards its touch stream to it.
+    private val gestureController = GestureController(context) { setExpanded(true) }
+    private val handleView = HandleView(context, gestureController)
     private val panelView = PanelView(context, defaultButtons(), Tokens.activePreset)
     private var state = State.Collapsed
 
@@ -63,7 +80,9 @@ class OverlayView(
                 .translationX(0f)
                 .setDuration(Tokens.EXPAND_COLLAPSE_MS)
                 .setInterpolator(motionInterpolator)
+            scheduleAutoCollapse()
         } else {
+            cancelAutoCollapse()
             // The handle sits under the panel (same dark fill, panel is on top), so it
             // can become visible now and is only revealed as the panel slides right.
             handleView.visibility = VISIBLE
@@ -81,6 +100,64 @@ class OverlayView(
                     }
                 }
         }
+    }
+
+    /**
+     * Restarts the auto-collapse countdown (FR-5). Public because every interaction
+     * with the panel must push the collapse back — T06 calls this on every volume or
+     * power action. A no-op while collapsed so no callback can ever be scheduled
+     * outside an expanded overlay (NFR-1).
+     */
+    fun resetAutoCollapse() {
+        if (state != State.Expanded) return
+        scheduleAutoCollapse()
+    }
+
+    /** At most one pending callback; remove-before-post makes rescheduling idempotent. */
+    private fun scheduleAutoCollapse() {
+        autoCollapseHandler.removeCallbacks(autoCollapseRunnable)
+        // Read at schedule time, so a timeout change from T08 applies from the next
+        // expand onward without recreating anything.
+        autoCollapseHandler.postDelayed(autoCollapseRunnable, Prefs.autoCollapseTimeoutMs(context))
+    }
+
+    private fun cancelAutoCollapse() {
+        autoCollapseHandler.removeCallbacks(autoCollapseRunnable)
+    }
+
+    /**
+     * Every touch on the panel passes through here on its way to the buttons, so this
+     * is the one hook that sees "any touch on the panel" (FR-5) and restarts the
+     * countdown. Never intercepts: the children keep their own touch handling. While
+     * collapsed the state guard makes handle touches a no-op here — opening the panel
+     * must never schedule or reset a collapse timer (task T04).
+     */
+    override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
+        if (state == State.Expanded) resetAutoCollapse()
+        return false
+    }
+
+    /**
+     * Only events with no child target reach this view — in practice ACTION_OUTSIDE,
+     * delivered because VButtonService ORs FLAG_WATCH_OUTSIDE_TOUCH into the window
+     * flags. Collapse only while expanded: while collapsed an outside touch must be a
+     * no-op, so the handle never collapse-flickers on touches in the app underneath
+     * (task T04).
+     */
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_OUTSIDE && state == State.Expanded) {
+            setExpanded(false)
+            return true
+        }
+        return super.onTouchEvent(event)
+    }
+
+    override fun onDetachedFromWindow() {
+        // No scheduled callback may outlive the view (AGENTS.md lifecycle): the
+        // service detaches the overlay on unbind/destroy, so this kills any pending
+        // collapse when the service is turned off with the panel open.
+        autoCollapseHandler.removeCallbacks(autoCollapseRunnable)
+        super.onDetachedFromWindow()
     }
 
     /**

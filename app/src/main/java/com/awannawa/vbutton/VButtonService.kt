@@ -74,7 +74,10 @@ class VButtonService : AccessibilityService() {
             dp(Tokens.COLLAPSED_WINDOW_WIDTH_DP),
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            // WATCH_OUTSIDE_TOUCH: OverlayView collapses on ACTION_OUTSIDE (FR-5, a tap
+            // outside the panel). ORed with NOT_FOCUSABLE, never a replacement.
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT,
         ).apply {
             // RIGHT, not END: END mirrors to the left edge in RTL locales, while this

@@ -47,7 +47,7 @@ Change `[ ]` to `[x]` only after the task's verification passes.
 - [x] T01 Project setup and skeleton
 - [x] T02 AccessibilityService and overlay window
 - [x] T03 Handle and panel UI
-- [ ] T04 Expand and collapse gestures
+- [x] T04 Expand and collapse gestures
 - [ ] T06 Volume and power actions
 - [ ] T05 Drag and position persistence
 - [ ] T07 Responsive behavior and gesture exclusion
@@ -101,3 +101,10 @@ History:
 - Files changed: overlay/Tokens.kt (single source of all overlay dp/colors/durations, presets S/M/L as data), overlay/ButtonSpec.kt, overlay/OverlayView.kt (setExpanded/applyConfig idempotent, state enum, 150ms translationX DecelerateInterpolator), overlay/HandleView.kt (5x72dp bar, 1dp border, rounded ends, alpha 0.6), overlay/PanelView.kt (renders from ButtonSpec list, pressed highlight circle, icon inset math), VButtonService.kt (placeholder -> OverlayView, dp() now Math.round), strings.xml (3 contentDescriptions), drawable ic_volume_up/ic_volume_down/ic_power.xml (byte-identical copies)
 - Unfinished items or things to check: needs device test — both states visually (slide direction/feel, window width via Layout Inspector), readability on white AND black app backgrounds, alignment at handle Y. Design check section 5 passed in code review; screenshot-dependent items pending
 - Notes for the next worker (T04): state model is one enum (Collapsed/Expanded) with a documented path for Dragging (T05). Collapse-side window shrink (60->24dp) runs in the guarded animation end action so the close slide stays visible — expand grows immediately. In-flight animation not canceled on detach (benign caught error-log noise, parked). T08: a preset change while collapsed must refresh the parked translationX offset. PRESET_S/L + panelHeightDp + repeatable are declared-unused until T05-T08 (spec data, not dead code)
+- Date: 2026-11-01
+- Worker: orchestrator-dispatched implementer (fresh subagent session), audited by orchestrator; 1 fix round (fling vertical-dominance per FR-4, orchestrator ruling; +3 JVM tests)
+- Task worked on: T04 Expand and collapse gestures
+- Status: done
+- Files changed: overlay/GestureController.kt (new; tap/left-fling detection, ViewConfiguration thresholds at event time, dominance gate), overlay/OverlayView.kt (auto-collapse Handler with paired remove paths, resetAutoCollapse() public for T06, ACTION_OUTSIDE collapse guarded by state), overlay/HandleView.kt (touch consumption + forwarding), Prefs.kt (auto-collapse timeout key, default 3000), VButtonService.kt (FLAG_WATCH_OUTSIDE_TOUCH added, FLAG_NOT_FOCUSABLE kept), ShouldOpenOnFlingTest.kt (9/9)
+- Unfinished items or things to check: needs device test — 20 taps + 20 swipes open the panel; auto-collapse after ~3s and reset on any panel touch; tap outside collapses (no flicker when collapsed); handle touches don't leak to the app below; service-off-while-open is clean in logcat
+- Notes for the next worker (T06): wire Actions-backed lambdas into the ButtonSpec list inside OverlayView (defaultButtons) and call its own resetAutoCollapse() on volume actions — VButtonService.overlayView stays private; construct Actions in VButtonService and pass into OverlayView. See T04 task-file Notes for the lint deferral and fling ruling
