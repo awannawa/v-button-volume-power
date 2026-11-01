@@ -18,6 +18,22 @@
             </intent-filter>
         </activity>
 
+        <!--
+          exported="true" is required (component has an intent-filter, targetSdk 31+);
+          the system alone can bind it because of BIND_ACCESSIBILITY_SERVICE.
+        -->
+        <service
+            android:name=".VButtonService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
     </application>
 
 </manifest>

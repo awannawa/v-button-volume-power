@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  No accessibilityEventTypes on purpose: the default of 0 means the service
+  receives no events at all (NFR-1: no work while idle). It only hosts the
+  overlay window and its touch handling.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/accessibility_service_description"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:canRetrieveWindowContent="false"
+    android:canPerformGestures="false" />
