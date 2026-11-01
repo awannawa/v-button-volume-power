@@ -9,4 +9,6 @@ local.properties
 # the repo (~/keystores/). These patterns keep any accidental copy out of git.
 *.jks
 *.keystore
+*.p12
+*.pfx
 *signing.properties

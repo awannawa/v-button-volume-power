@@ -42,8 +42,6 @@
     <!-- (Android 13+) is the ruled helper note: restricted settings apply to
          sideloaded apps from Android 13 (PRD R3). -->
     <string name="onboarding_step_4">4. If the toggle is blocked (Android 13+): open App info, tap the three-dot menu, tap Allow restricted settings, then turn the service on.</string>
-    <!-- One literal sentence; the full Vivo battery guide lands in T09. -->
-    <string name="onboarding_vivo_helper">On Vivo (Funtouch OS), also allow Autostart and unrestricted battery use for this app.</string>
 
     <!-- Vivo resilience guide (T09, PRD R2). The paths are the Funtouch OS locations,
          stated literally; no claim is made about what Vivo guarantees. -->

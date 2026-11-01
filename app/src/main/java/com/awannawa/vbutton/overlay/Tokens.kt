@@ -31,7 +31,7 @@ object Tokens {
     val PRESET_M = SizePreset(buttonDp = 52, iconDp = 24, panelWidthDp = 60, panelHeightDp = 176)
     val PRESET_L = SizePreset(buttonDp = 56, iconDp = 26, panelWidthDp = 64, panelHeightDp = 188)
 
-    /** 01-ui-spec.md section 3 names M the default; T07/T08 make the preset selectable. */
+    /** 01-ui-spec.md section 3 names M the default; sizePresetFromPref falls back to this compiled default when the stored preset is unreadable. */
     val activePreset: SizePreset = PRESET_M
 
     /**
@@ -74,7 +74,7 @@ object Tokens {
     /** DESIGN.md section 2: both overlay borders are 1dp. */
     const val BORDER_WIDTH_DP = 1
 
-    /** 01-ui-spec.md section 2: default handle alpha; the opacity setting arrives in T08. */
+    /** 01-ui-spec.md section 2: starting handle alpha; the live alpha comes from the opacity preference via applyConfig. */
     const val HANDLE_ALPHA_DEFAULT = 0.6f
 
     /** DESIGN.md section 2, motion: open and close duration. */

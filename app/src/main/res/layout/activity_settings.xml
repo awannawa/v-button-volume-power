@@ -199,13 +199,6 @@
             android:text="@string/onboarding_step_4"
             android:textSize="16sp" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/onboarding_vivo_helper"
-            android:textSize="14sp" />
-
         <!-- T09: Vivo resilience guide (PRD R2), below the onboarding per ruling.
              Plain numbered steps, no illustrations (DESIGN.md section 3); the two
              buttons open the system screens the steps point at (no permission needed:

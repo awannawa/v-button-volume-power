@@ -221,7 +221,7 @@ class SafeAreaTest {
     @Test
     fun `compact fit boundary is exact after density scaling`() {
         // 176dp at density 3 is exactly 528px: fits. One pixel less does not, and the
-        // step-down lands on S (164dp = 492px also misses 527px, so the floor holds).
+        // step-down lands on S because M (528px) misses 527px while S (164dp = 492px) fits.
         assertEquals(Tokens.PRESET_M, SafeArea.selectFittingPreset(528, Tokens.PRESET_M, 3f))
         assertEquals(Tokens.PRESET_S, SafeArea.selectFittingPreset(527, Tokens.PRESET_M, 3f))
     }

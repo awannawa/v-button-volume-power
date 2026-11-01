@@ -38,7 +38,7 @@ Funtouch OS may stop the service in the background unless you allow it to start 
 2. Battery: set battery use to unrestricted (Settings, Battery, Background power consumption management, or App info, Battery, Unrestricted).
 3. Recents: open the recents screen and lock Virtual Buttons with its lock icon.
 
-The app shows a warning line when the service is not running, so you can tell when Funtouch OS has stopped it.
+The app shows a warning line when the service is not running after you have enabled it once, so you can tell when Funtouch OS has stopped it.
 
 ## 4. Use the overlay
 
