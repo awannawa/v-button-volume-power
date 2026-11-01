@@ -53,7 +53,7 @@ Change `[ ]` to `[x]` only after the task's verification passes.
 - [x] T07 Responsive behavior and gesture exclusion
 - [x] T08 Settings and onboarding
 - [x] T09 Vivo resilience and performance
-- [ ] T10 QA and APK release
+- [x] T10 QA and APK release
 - [ ] T11 Optional: wake helper and extra buttons
 
 ## Verification
@@ -143,3 +143,10 @@ History:
 - Files changed: SettingsActivity.kt (Vivo guide section, two battery/app-info buttons with fallback, dead-service warning line), res/layout/activity_settings.xml (guide + warning), Prefs.kt (was_service_active key), VButtonService.kt (sets the flag first thing in onServiceConnected), res/values/strings.xml (guide copy)
 - Unfinished items or things to check: ALL measurements need device — 24h survival with guide followed; `adb shell dumpsys meminfo com.awannawa.vbutton` < 40MB PSS idle; `adb shell dumpsys batterystats` no significant consumer; reboot survival; power-saving mode; hours screen-off; warning appears after revoke/kill-and-disable. Exact commands in task-09-report.md. Idle audit: all 6 items PASS (verified); drag move path zero-allocation confirmed
 - Notes for the next worker (T10): the Settings action constant is ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS (corrected from the ruling — verified against android.jar). was_service_active never clears by design. Force-stop gap is a documented limitation (T09 Notes). You own signing: keystore OUTSIDE the repo (~/keystores/), secrets in a gitignored properties file — never commit them. assembleRelease is allowed FOR YOU ONLY. After release build, check APK size (NFR-5 <1MB if possible) and permissions (aapt dump permissions — must stay empty)
+- Date: 2026-11-01
+- Worker: orchestrator-dispatched implementer (fresh subagent session), audited by orchestrator; review clean (no fix round)
+- Task worked on: T10 QA and APK release
+- Status: done (release pipeline + docs; device QA checklist outstanding)
+- Files changed: app/build.gradle.kts (signingConfig from /home/awan/keystores/vbutton-signing.properties with debug fallback), .gitignore (keystore/secret patterns), docs/virtual-buttons/INSTALL.md (new). Keystore + secrets live OUTSIDE the repo at /home/awan/keystores/ (alias vbutton; passwords only in the chmod-600 properties file)
+- Unfinished items or things to check: DEVICE QA — AC-1..AC-6 manual steps, NFR-1..4 measurements, AC-9 screenshots (exact steps in task-10-report.md and INSTALL.md). AC-7 verified (zero permissions on both APKs); NFR-5 verified (release APK 62,453 bytes)
+- Notes for the next worker: only T11 (optional) remains — needs explicit request. Release APK at app/build/outputs/apk/release/app-release.apk. To rebuild release on this machine, the signing properties must exist at /home/awan/keystores/vbutton-signing.properties; other machines fall back to debug signing. Keep the keystore safe — losing it means the app can never be updated in place (would need uninstall/reinstall)

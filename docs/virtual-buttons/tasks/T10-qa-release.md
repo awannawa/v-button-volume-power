@@ -1,6 +1,6 @@
 # T10: QA and APK release
 
-Status: TODO
+Status: done (2026-11-01, orchestrator-audited; device QA outstanding — see Notes)
 Dependencies: T09
 
 ## Goal
@@ -37,4 +37,5 @@ Dependencies: T09
 
 ## Notes
 
-- (to be filled in by the worker)
+- (orchestrator, 2026-11-01) Release pipeline delivered and reviewed clean. Keystore at /home/awan/keystores/vbutton.jks (alias vbutton; passwords ONLY in /home/awan/keystores/vbutton-signing.properties, chmod 600, never committed). signingConfig reads the properties file when present, debug-signed fallback otherwise (fallback drill executed both directions). Release APK 62,453 bytes (NFR-5 <1MB met), signed, aapt dump permissions EMPTY (AC-7 verified on the artifact). INSTALL.md claim-traced against code by review with zero misses. AC table honest: AC-7 + NFR-5 PASS; AC-1..AC-6 needs-device; AC-8/AC-9 partial.
+- (orchestrator, 2026-11-01) Ruling: android:allowBackup stays at default (true) — backed-up data is non-sensitive UI preferences only; restore on a new device is user-beneficial; no INTERNET permission means no app-driven exfiltration. Deferred minors (final review triage): signing missing-key NPE edge; storeFile relative-path resolution; .gitignore misses .p12/.pfx patterns; INSTALL.md warning-line wording could note "after you have enabled it once". OUTSTANDING: device QA — full AC-1..AC-6 + NFR-1..4 steps in task-10-report.md.

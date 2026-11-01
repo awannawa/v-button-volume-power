@@ -4,3 +4,9 @@ local.properties
 .idea/
 *.iml
 .kotlin/
+
+# Signing material (T10): the release keystore and its passwords live outside
+# the repo (~/keystores/). These patterns keep any accidental copy out of git.
+*.jks
+*.keystore
+*signing.properties
