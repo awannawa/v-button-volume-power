@@ -157,4 +157,81 @@ class SafeAreaTest {
         // T05 ruling: the position default is 0.4 until the user drags (Prefs.kt).
         assertEquals(0.4f, com.awannawa.vbutton.Prefs.Y_RATIO_DEFAULT)
     }
+
+    // Compact mode (T07): SafeArea.availableHeightPx + selectFittingPreset. -------------
+    // Preset panel heights in px at density 2: S 328, M 352, L 376; at density 3:
+    // S 492, M 528, L 564.
+
+    @Test
+    fun `available height subtracts both insets and both margins`() {
+        val screen = SafeArea.ScreenInsets(
+            screenHeightPx = 800,
+            insetTopPx = 100,
+            insetBottomPx = 100,
+            rightInsetPx = 0,
+        )
+        assertEquals(552, SafeArea.availableHeightPx(screen, 24))
+    }
+
+    @Test
+    fun `a panel of exactly the available height leaves a valid range`() {
+        // The "fits" measure of compact mode must agree with SafeArea.compute: a panel
+        // of exactly the available height gives max == min — non-inverted, so the
+        // position restore has a (degenerate but valid) range to work with.
+        val screen = SafeArea.ScreenInsets(800, 100, 100, 0)
+        val available = SafeArea.availableHeightPx(screen, 24)
+        val exact = SafeArea.compute(800, 100, 100, available, 24)
+        assertEquals(124, exact.minPx)
+        assertEquals(124, exact.maxPx)
+    }
+
+    @Test
+    fun `compact keeps the active preset when it fits`() {
+        // M (352px at density 2) fits in 552px — even though L (376px) would too:
+        // compact mode never steps UP, the user's chosen size wins.
+        assertEquals(Tokens.PRESET_M, SafeArea.selectFittingPreset(552, Tokens.PRESET_M, 2f))
+    }
+
+    @Test
+    fun `compact never steps up on a tall screen`() {
+        assertEquals(Tokens.PRESET_M, SafeArea.selectFittingPreset(2000, Tokens.PRESET_M, 2f))
+        assertEquals(Tokens.PRESET_S, SafeArea.selectFittingPreset(2000, Tokens.PRESET_S, 2f))
+    }
+
+    @Test
+    fun `compact steps down one preset to the first that fits`() {
+        // M (352px) misses 340px, S (328px) lands: one step, not a jump to the floor.
+        assertEquals(Tokens.PRESET_S, SafeArea.selectFittingPreset(340, Tokens.PRESET_M, 2f))
+        // L (376px) misses 360px, M (352px) fits.
+        assertEquals(Tokens.PRESET_M, SafeArea.selectFittingPreset(360, Tokens.PRESET_L, 2f))
+    }
+
+    @Test
+    fun `compact steps through several presets when needed`() {
+        // L (376px) and M (352px) both miss 340px; S (328px) lands.
+        assertEquals(Tokens.PRESET_S, SafeArea.selectFittingPreset(340, Tokens.PRESET_L, 2f))
+    }
+
+    @Test
+    fun `compact floors at preset S even when nothing fits`() {
+        assertEquals(Tokens.PRESET_S, SafeArea.selectFittingPreset(100, Tokens.PRESET_M, 2f))
+        assertEquals(Tokens.PRESET_S, SafeArea.selectFittingPreset(100, Tokens.PRESET_S, 2f))
+    }
+
+    @Test
+    fun `compact fit boundary is exact after density scaling`() {
+        // 176dp at density 3 is exactly 528px: fits. One pixel less does not, and the
+        // step-down lands on S (164dp = 492px also misses 527px, so the floor holds).
+        assertEquals(Tokens.PRESET_M, SafeArea.selectFittingPreset(528, Tokens.PRESET_M, 3f))
+        assertEquals(Tokens.PRESET_S, SafeArea.selectFittingPreset(527, Tokens.PRESET_M, 3f))
+    }
+
+    @Test
+    fun `insets overload computes the same range as the pure core`() {
+        val screen = SafeArea.ScreenInsets(2400, 100, 100, 42)
+        assertEquals(
+            SafeArea.compute(2400, 100, 100, 500, 24),
+            SafeArea.compute(screen, 500, 24),
+        )
+    }
 }

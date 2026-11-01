@@ -50,7 +50,7 @@ Change `[ ]` to `[x]` only after the task's verification passes.
 - [x] T04 Expand and collapse gestures
 - [x] T06 Volume and power actions
 - [x] T05 Drag and position persistence
-- [ ] T07 Responsive behavior and gesture exclusion
+- [x] T07 Responsive behavior and gesture exclusion
 - [ ] T08 Settings and onboarding
 - [ ] T09 Vivo resilience and performance
 - [ ] T10 QA and APK release
@@ -122,3 +122,10 @@ History:
 - Files changed: overlay/SafeArea.kt (new; pure core clamp/ratio + API-28/29 fallback wrapper, signature stable for T07), overlay/GestureController.kt (long-press enters drag, raw-stream drag handling, release-flick cannot open panel), overlay/OverlayView.kt (Dragging state with preDragState capture, allocation-free move path, yRatio save on release, restore on Expanded), overlay/Tokens.kt (drag-scale/alpha/release-100ms citing DESIGN.md Motion), Prefs.kt (y_ratio key default 0.4), VButtonService.kt (restore yRatio on connect before addView), SafeAreaTest.kt (16 tests; 30 total)
 - Unfinished items or things to check: needs device test — drag tracking without lag, clamps at safe-area extremes, persistence across service restart AND reboot, expanded-drag moves whole panel, 100ms release visuals, release-flick does not open panel
 - Notes for the next worker (T07): (1) SafeArea's API-28/29 inset fallback (status_bar_height/navigation_bar_height resources + DisplayMetrics) is plan-mandated temporary — replace internals with WindowMetrics/insets per 01-ui-spec section 4, keep compute() signature; bottom clamp is currently loose under gesture navigation. (2) T08: applyConfig mid-drag would restore a stale preDragHandleAlpha on release — re-read alpha in endDrag or branch applyConfig mid-drag. (3) Multi-touch: rawY tracks pointer 0 — dragging finger lift with a second finger down makes the window jump to the other finger (self-corrects; pointer-id tracking is the fix if device testing shows it matters). (4) Drag-entry haptic uses HapticFeedbackConstants.LONG_PRESS (heavier than T06's VIRTUAL_KEY) — deliberate-or-lighter call open
+- Date: 2026-11-01
+- Worker: orchestrator-dispatched implementer (fresh subagent session), audited by orchestrator; review clean (no fix round)
+- Task worked on: T07 Responsive behavior and gesture exclusion
+- Status: done
+- Files changed: overlay/SafeArea.kt (WindowMetrics systemBars+displayCutout on API 30+, resource fallback below; pure selectFittingPreset compact mode, floor S; compute() signature unchanged), overlay/OverlayView.kt (gesture exclusion rects in onLayout with API 29 guard, lp.x = right inset, compact preset consumption with parked-translationX refresh, applyConfig runs full recompute), VButtonService.kt (onConfigurationChanged -> recomputeLayout, layoutInDisplayCutoutMode ALWAYS/SHORT_EDGES with rationale), SafeAreaTest.kt (+9 compact-mode tests; 39 total)
+- Unfinished items or things to check: needs device test — rotation at top/middle/bottom, both nav modes, back-gesture exclusion works, RTL keeps handle right, compact mode on short landscape, cutout not clipped in landscape, fullscreen apps + lock screen, split-screen, keyboard, small/large display sizes. PARKED plan-mandated: API 28/29 right-inset = 0 (nav-bar overlap possible on those levels only) — T10 risk list
+- Notes for the next worker (T08): applyConfig() already runs the full recompute (T07 wired it) — extend it to read your new prefs (opacity, preset, timeout, haptics) and it all applies live; register the OnSharedPreferenceChangeListener in VButtonService onServiceConnected and unregister in onDestroy (pair it!). Handle the T05 finding: an applyConfig arriving mid-drag must not let endDrag restore a stale preDragHandleAlpha. Settings copy: sentence case, literal, no emoji (DESIGN.md section 3); typography tokens 20sp/14sp/16sp are in DESIGN.md

@@ -34,6 +34,14 @@ object Tokens {
     /** 01-ui-spec.md section 3 names M the default; T07/T08 make the preset selectable. */
     val activePreset: SizePreset = PRESET_M
 
+    /**
+     * The three presets ordered smallest first — the section 3 table as a list, not a
+     * new size. 01-ui-spec.md section 4's compact mode steps down one preset at a
+     * time (SafeArea.selectFittingPreset); T08's preset selector iterates the same
+     * list.
+     */
+    val PRESETS_SMALLEST_FIRST = listOf(PRESET_S, PRESET_M, PRESET_L)
+
     // 01-ui-spec.md section 2: handle geometry. The 24dp touch area is not a separate
     // constant because it is the collapsed window width itself (section 3: the window
     // is 24dp while collapsed); HandleView simply fills the window.

@@ -1,6 +1,8 @@
 package com.awannawa.vbutton.overlay
 
 import android.content.Context
+import android.graphics.Rect
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -22,6 +24,12 @@ private const val LOG_TAG = "VButton"
  * window width (24dp collapsed, active preset's panel width expanded, 01-ui-spec.md
  * section 3) through WindowManager.updateViewLayout, and — while dragging — the
  * window's Y position, clamped to the safe area (PRD FR-6).
+ *
+ * T07 adds the screen-fit pass ([recomputeLayout], run on configuration changes and
+ * through [applyConfig]): insets via WindowMetrics, compact mode, the window's X
+ * offset from the right inset, and restoring the position from the stored yRatio
+ * (01-ui-spec.md section 4). It also excludes the whole window from the system back
+ * gesture ([onLayout], PRD R1), so a leftward swipe on the handle opens the panel.
  *
  * Expanding comes from [GestureController] (tap or left fling on the handle, FR-4);
  * dragging comes from the same controller (handle long press, FR-6). Collapsing
@@ -60,7 +68,31 @@ class OverlayView(
         onDragEnd = { endDrag() },
     )
     private val handleView = HandleView(context, gestureController)
-    private val panelView = PanelView(context, defaultButtons(), Tokens.activePreset)
+
+    /**
+     * The v1 buttons (PRD FR-7/FR-8: volume holds repeat, power does not). Built once
+     * for the overlay's lifetime: compact mode (T07) rebuilds the PanelView on a
+     * preset change, and rebuilding with fresh specs would register a new
+     * press-canceller in Actions on every rotation — reusing one spec list keeps
+     * Actions' press registry at one entry per button for the overlay's life. Each
+     * spec declares its semantic actions (tapAction/longPressAction — also the
+     * TalkBack activation path) and gets its physical press lifecycle from
+     * [Actions.pressHandler]; T11 adds items to this list only.
+     */
+    private val buttonSpecs: List<ButtonSpec> = defaultButtons()
+
+    /**
+     * The preset the overlay currently renders with: [Tokens.activePreset] stepped
+     * down by compact mode (01-ui-spec.md section 4) when this screen is too short
+     * for the panel. Recomputed on every configuration pass ([recomputeLayout]); the
+     * user's desired preset stays [Tokens.activePreset] (T08 owns it) — compact mode
+     * only shrinks, never widens. Read by VButtonService for the window it creates
+     * before this view is attached.
+     */
+    var effectivePreset: Tokens.SizePreset = compactPresetForCurrentScreen()
+        private set
+
+    private var panelView = PanelView(context, buttonSpecs, effectivePreset)
     private var state = State.Collapsed
 
     /**
@@ -82,6 +114,14 @@ class OverlayView(
     /** The handle alpha the release transition restores (whatever applyConfig had set). */
     private var preDragHandleAlpha = Tokens.HANDLE_ALPHA_DEFAULT
 
+    /**
+     * Reusable rect + list for the back-gesture exclusion ([onLayout]): the
+     * allocation-free pattern the platform documents — mutate the rect, re-assign the
+     * list, so layout passes never allocate.
+     */
+    private val gestureExclusionRect = Rect()
+    private val gestureExclusionRectList = listOf(gestureExclusionRect)
+
     // DESIGN.md section 2, motion locks one curve for open and close.
     private val motionInterpolator = DecelerateInterpolator()
 
@@ -90,8 +130,9 @@ class OverlayView(
         addView(panelView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         panelView.visibility = GONE
         // Park the panel fully outside the window so the first expand animates a real
-        // slide-in from the right instead of popping into place.
-        panelView.translationX = dp(Tokens.activePreset.panelWidthDp).toFloat()
+        // slide-in from the right instead of popping into place. Parked at the
+        // effective (compact) preset's width, matching showCollapsed's target.
+        panelView.translationX = dp(effectivePreset.panelWidthDp).toFloat()
         applyConfig()
     }
 
@@ -122,7 +163,7 @@ class OverlayView(
     private fun showExpanded() {
         handleView.visibility = GONE
         panelView.visibility = VISIBLE
-        resizeWindow(dp(Tokens.activePreset.panelWidthDp))
+        resizeWindow(dp(effectivePreset.panelWidthDp))
         panelView.animate()
             .translationX(0f)
             .setDuration(Tokens.EXPAND_COLLAPSE_MS)
@@ -142,7 +183,7 @@ class OverlayView(
         // can become visible now and is only revealed as the panel slides right.
         handleView.visibility = VISIBLE
         panelView.animate()
-            .translationX(dp(Tokens.activePreset.panelWidthDp).toFloat())
+            .translationX(dp(effectivePreset.panelWidthDp).toFloat())
             .setDuration(Tokens.EXPAND_COLLAPSE_MS)
             .setInterpolator(motionInterpolator)
             .withEndAction {
@@ -166,7 +207,11 @@ class OverlayView(
     private fun startDrag(downRawY: Float) {
         if (state == State.Dragging) return
         val params = layoutParams as? WindowManager.LayoutParams ?: return
-        dragRange = SafeArea.compute(context, dp(Tokens.activePreset.panelHeightDp))
+        // Fresh insets at drag start (SafeArea reads WindowMetrics each call), so a
+        // drag clamps against the configuration it runs in — including system-bar
+        // visibility changes that no onConfigurationChanged announces. The effective
+        // (compact) preset's height is the tallest content this configuration renders.
+        dragRange = SafeArea.compute(context, dp(effectivePreset.panelHeightDp))
         grabOffsetPx = downRawY - params.y
         preDragState = state
         preDragHandleAlpha = handleView.alpha
@@ -272,6 +317,31 @@ class OverlayView(
         return super.onTouchEvent(event)
     }
 
+    /**
+     * Back-gesture exclusion (PRD R1): the whole window is excluded from the system
+     * back gesture, so a leftward swipe on the handle opens the panel (FR-4) instead
+     * of navigating back. The rect is in this view's local coordinates and covers the
+     * entire view, which is exactly the window (the view fills it) — expand/collapse
+     * resizes re-layout the view, so re-setting here tracks every window size.
+     *
+     * Height limit: the system honors at most ~200dp of exclusion height per screen
+     * edge. The handle is 72dp and the tallest panel is preset L at 188dp —
+     * 01-ui-spec.md section 3 deliberately keeps every preset under 200dp, so the
+     * whole-view rect is always honored. Deliberate assertion by spec, not runtime
+     * detection.
+     *
+     * API guard: setSystemGestureExclusionRects exists from API 29. API 28 is a no-op
+     * by design — gesture navigation itself shipped in Android 10 (API 29), so on
+     * API 28 there is no system gesture to conflict with (AGENTS.md: guarded calls
+     * never crash).
+     */
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        super.onLayout(changed, left, top, right, bottom)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        gestureExclusionRect.set(0, 0, width, height)
+        systemGestureExclusionRects = gestureExclusionRectList
+    }
+
     override fun onDetachedFromWindow() {
         // No scheduled callback may outlive the view (AGENTS.md lifecycle): the
         // service detaches the overlay on unbind/destroy, so this kills any pending
@@ -286,11 +356,95 @@ class OverlayView(
 
     /**
      * Single entry point for settings (AGENTS.md): T08 pushes changes here instead of
-     * recreating views. Only the handle opacity has a source today; T08 extends this
-     * to read Prefs for the preset, opacity, and anything else. Idempotent.
+     * recreating views. Idempotent. Besides the handle opacity it runs the full
+     * screen-fit pass (01-ui-spec.md section 4: recompute "whenever a setting
+     * changes") — a future preset change lands through the same recompute — so T08
+     * needs no other path into the overlay.
      */
     fun applyConfig() {
         handleView.alpha = Tokens.HANDLE_ALPHA_DEFAULT
+        recomputeLayout()
+    }
+
+    /**
+     * The screen-fit pass (01-ui-spec.md section 4: "Recompute everything above in
+     * onConfigurationChanged and whenever a setting changes"): fresh insets, compact
+     * mode, and the window's x/y, then one layout update. Called by
+     * VButtonService.onConfigurationChanged and [applyConfig].
+     *
+     * Position rule (01-ui-spec.md section 4): at rest the stored yRatio is the source
+     * of truth — the y is re-converted from it against the fresh range, so rotation,
+     * a display-size change, or a preset change keeps the position sensible instead of
+     * carrying stale px over. A drag in progress is the exception: the finger is the
+     * truth there, so the current y is only re-clamped into the fresh range and the
+     * drag keeps moving against it (the release then saves the ratio for the new
+     * geometry).
+     *
+     * Before the window exists (construction, via [applyConfig] in init) it only
+     * settles [effectivePreset]; VButtonService reads that preset and the same insets
+     * to place the window before addView.
+     */
+    fun recomputeLayout() {
+        val screen = SafeArea.readScreenInsets(context)
+        val marginPx = dp(Tokens.SCREEN_EDGE_MARGIN_DP)
+        val preset = selectCompactPreset(screen, marginPx)
+        if (preset != effectivePreset) applyPreset(preset)
+        effectivePreset = preset
+
+        val params = layoutParams as? WindowManager.LayoutParams ?: return
+        val range = SafeArea.compute(screen, dp(effectivePreset.panelHeightDp), marginPx)
+        dragRange = range
+        // X offset (01-ui-spec.md section 4): with Gravity.RIGHT, x is the inward
+        // distance from the right edge — the navigation bar sitting there in landscape
+        // with 3-button navigation, or a cutout — so the overlay never covers system
+        // areas on the x axis.
+        params.x = screen.rightInsetPx
+        params.y = when (state) {
+            State.Dragging -> Math.round(SafeArea.clampY(params.y.toFloat(), range))
+            else -> Math.round(SafeArea.yFromRatio(Prefs.yRatio(context), range))
+        }
+        updateWindowLayout()
+    }
+
+    /**
+     * Compact-mode decision for one inset reading (pure math in
+     * SafeArea.selectFittingPreset, JVM-tested): the active preset stepped down while
+     * its panel is taller than the space between the system bars and the screen-edge
+     * margins.
+     */
+    private fun selectCompactPreset(
+        screen: SafeArea.ScreenInsets,
+        marginPx: Int,
+    ): Tokens.SizePreset = SafeArea.selectFittingPreset(
+        availableHeightPx = SafeArea.availableHeightPx(screen, marginPx),
+        activePreset = Tokens.activePreset,
+        density = resources.displayMetrics.density,
+    )
+
+    /** [selectCompactPreset] for the current configuration (used at construction). */
+    private fun compactPresetForCurrentScreen(): Tokens.SizePreset =
+        selectCompactPreset(SafeArea.readScreenInsets(context), dp(Tokens.SCREEN_EDGE_MARGIN_DP))
+
+    /**
+     * Swaps the panel to a new preset (compact mode stepped down; a future setting
+     * changed it). PanelView sizes its buttons at construction, so a preset change
+     * replaces the instance. The visual state carries over: a visible panel stays in
+     * place and keeps its window width, a hidden one stays parked outside for the next
+     * slide-in. The outgoing instance's press timers are cancelled here (its touch
+     * stream dies with the swap, and the child views' own detach cleanup only stops
+     * their animations), and the specs are shared ([buttonSpecs]), so Actions' press
+     * registry never grows across rebuilds. An unchanged preset never reaches here
+     * (recomputeLayout guards).
+     */
+    private fun applyPreset(preset: Tokens.SizePreset) {
+        val panelVisible = panelView.visibility == VISIBLE
+        actions.cancelPendingPresses()
+        removeView(panelView)
+        panelView = PanelView(context, buttonSpecs, preset)
+        addView(panelView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        panelView.visibility = if (panelVisible) VISIBLE else GONE
+        panelView.translationX = if (panelVisible) 0f else dp(preset.panelWidthDp).toFloat()
+        if (panelVisible) resizeWindow(dp(preset.panelWidthDp))
     }
 
     /**

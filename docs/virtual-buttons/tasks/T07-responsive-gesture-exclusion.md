@@ -1,6 +1,6 @@
 # T07: Responsive behavior and gesture exclusion
 
-Status: TODO
+Status: done (2026-11-01, orchestrator-audited)
 Dependencies: T05
 Required reading: `DESIGN.md`, `docs/virtual-buttons/01-ui-spec.md`
 Required skills: andrej-karpathy-skills, hallmark (see `AGENTS.md`)
@@ -48,4 +48,6 @@ Required skills: andrej-karpathy-skills, hallmark (see `AGENTS.md`)
 
 ## Notes
 
-- (to be filled in by the worker)
+- (orchestrator, 2026-11-01) Implemented and reviewed clean. SafeArea now uses WindowMetrics (systemBars + displayCutout) on API 30+, resource fallback below; compute() signature unchanged. Compact mode: pure selectFittingPreset, floor S; "fits" reading = panel height vs screen minus insets minus 2x margins. systemGestureExclusionRects guarded to API 29+ (no-op on 28); cutout mode ALWAYS on 30+/SHORT_EDGES below. 39 unit tests (9 new compact-mode).
+- (orchestrator, 2026-11-01) PARKED plan-mandated limitation: on API 28/29 the fallback returns rightInsetPx = 0, so in landscape with a right-side 3-button nav bar the overlay can overlap the nav bar on those API levels only. Primary device is Android 12+ (API 31+); plan text prescribes exactly this fallback. Survives into the release risk list (T10).
+- (orchestrator, 2026-11-01) Deferred minors: misleading compact-boundary test comment (assertions correct); recomputeLayout calls updateWindowLayout unconditionally (one redundant guarded IPC per no-op config event); narrow race — config change mid-150ms-animation that also switches the compact preset can leave a stale visible panel that self-heals on next state change.
