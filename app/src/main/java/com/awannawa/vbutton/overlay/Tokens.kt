@@ -57,6 +57,12 @@ object Tokens {
     const val PANEL_PADDING_HORIZONTAL_DP = 4
     const val PANEL_GAP_DP = 4
 
+    /**
+     * DESIGN.md section 2, spacing: screen-edge margin. The same 8dp is the Y-range
+     * margin in the safe-area formula (01-ui-spec.md section 4), used by SafeArea.
+     */
+    const val SCREEN_EDGE_MARGIN_DP = 8
+
     /** DESIGN.md section 2: both overlay borders are 1dp. */
     const val BORDER_WIDTH_DP = 1
 
@@ -68,6 +74,14 @@ object Tokens {
 
     /** DESIGN.md section 2, motion: the pressed highlight fades out on release. */
     const val PRESS_FADE_OUT_MS = 100L
+
+    // DESIGN.md section 2, motion, drag state: while dragging the handle is scaled to
+    // 1.5x and full opacity, and returns to normal on release over 100 ms. (The value
+    // coincides with PRESS_FADE_OUT_MS but names a different transition, so it keeps
+    // its own constant instead of sharing one.)
+    const val HANDLE_DRAG_SCALE_X = 1.5f
+    const val HANDLE_DRAG_ALPHA = 1.0f
+    const val DRAG_RELEASE_MS = 100L
 }
 
 /**

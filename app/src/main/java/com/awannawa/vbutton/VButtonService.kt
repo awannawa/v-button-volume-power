@@ -9,6 +9,7 @@ import android.view.Gravity
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import com.awannawa.vbutton.overlay.OverlayView
+import com.awannawa.vbutton.overlay.SafeArea
 import com.awannawa.vbutton.overlay.Tokens
 
 /**
@@ -71,6 +72,15 @@ class VButtonService : AccessibilityService() {
 
         val overlay = OverlayView(this, manager, Actions(this))
 
+        // FR-6: restore the saved position on every connect. The ratio converts to px
+        // through the current safe-area range and is then clamped (pure math in
+        // SafeArea, JVM-tested in SafeAreaTest). The range always uses the panel
+        // height — the tallest content (01-ui-spec.md section 4) — so the expanded
+        // panel fits at any position the handle accepts. Set before addView, so the
+        // window appears in place with no extra updateViewLayout round trip.
+        val range = SafeArea.compute(this, dp(Tokens.activePreset.panelHeightDp))
+        val startPositionY = Math.round(SafeArea.yFromRatio(Prefs.yRatio(this), range))
+
         val params = WindowManager.LayoutParams(
             dp(Tokens.COLLAPSED_WINDOW_WIDTH_DP),
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -84,6 +94,7 @@ class VButtonService : AccessibilityService() {
             // RIGHT, not END: END mirrors to the left edge in RTL locales, while this
             // overlay must stay on the physical right edge (PRD section 10).
             gravity = Gravity.RIGHT or Gravity.TOP
+            y = startPositionY
         }
 
         try {

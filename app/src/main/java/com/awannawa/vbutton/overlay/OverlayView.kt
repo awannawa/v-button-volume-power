@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
@@ -17,15 +18,17 @@ private const val LOG_TAG = "VButton"
 /**
  * Root of the overlay window: the [HandleView] while collapsed, the [PanelView]
  * while expanded, both top-aligned so the panel appears at the handle's Y position
- * (PRD FR-3). Owns the collapsed/expanded switch: visibility plus the window width
- * (24dp collapsed, active preset's panel width expanded, 01-ui-spec.md section 3)
- * through WindowManager.updateViewLayout.
+ * (PRD FR-3). Owns the collapsed/expanded/dragging switch: visibility plus the
+ * window width (24dp collapsed, active preset's panel width expanded, 01-ui-spec.md
+ * section 3) through WindowManager.updateViewLayout, and — while dragging — the
+ * window's Y position, clamped to the safe area (PRD FR-6).
  *
- * Expanding comes from [GestureController] (tap or left fling on the handle, FR-4).
- * Collapsing comes from the auto-collapse timer or a tap outside the panel
- * (ACTION_OUTSIDE, FR-5). Settings (T08) will call [applyConfig]. The panel buttons
- * act through the [Actions] instance the service passes in (T06); this view never
- * touches AudioManager or the service itself (AGENTS.md).
+ * Expanding comes from [GestureController] (tap or left fling on the handle, FR-4);
+ * dragging comes from the same controller (handle long press, FR-6). Collapsing
+ * comes from the auto-collapse timer or a tap outside the panel (ACTION_OUTSIDE,
+ * FR-5). Settings (T08) will call [applyConfig]. The panel buttons act through the
+ * [Actions] instance the service passes in (T06); this view never touches
+ * AudioManager or the service itself (AGENTS.md).
  */
 class OverlayView(
     context: Context,
@@ -34,10 +37,11 @@ class OverlayView(
 ) : FrameLayout(context) {
 
     /**
-     * One explicit state, per AGENTS.md. Dragging joins this enum in T05; until then
-     * a two-state enum keeps setExpanded free of interdependent booleans.
+     * One explicit state, per AGENTS.md. [State.Dragging] is entered only from a
+     * stable Collapsed/Expanded state (FR-6) and always returns to the state that
+     * preceded the drag, so expand/collapse transitions never fight an active drag.
      */
-    private enum class State { Collapsed, Expanded }
+    private enum class State { Collapsed, Expanded, Dragging }
 
     /**
      * FR-5 auto-collapse: at most one pending callback, and only while expanded
@@ -48,10 +52,35 @@ class OverlayView(
     private val autoCollapseRunnable = Runnable { setExpanded(false) }
 
     // The controller is created first: HandleView forwards its touch stream to it.
-    private val gestureController = GestureController(context) { setExpanded(true) }
+    private val gestureController = GestureController(
+        context,
+        onOpen = { setExpanded(true) },
+        onDragStart = { downRawY -> startDrag(downRawY) },
+        onDragMove = { rawY -> dragTo(rawY) },
+        onDragEnd = { endDrag() },
+    )
     private val handleView = HandleView(context, gestureController)
     private val panelView = PanelView(context, defaultButtons(), Tokens.activePreset)
     private var state = State.Collapsed
+
+    /**
+     * The stable state the drag restores on release (Collapsed or Expanded — the
+     * task file's "while the panel is expanded, dragging still moves the whole
+     * panel": release returns the panel to whatever it was doing). Rewritten if a
+     * collapse or expand request lands mid-drag; the drag itself never changes it.
+     */
+    private var preDragState = State.Collapsed
+
+    /**
+     * Per-drag bookkeeping, captured once at drag start so the move path is pure
+     * arithmetic on primitives plus one updateViewLayout — no lookups, no
+     * allocations per event (T09 audit).
+     */
+    private var dragRange = SafeArea.YRange(0, 0)
+    private var grabOffsetPx = 0f
+
+    /** The handle alpha the release transition restores (whatever applyConfig had set). */
+    private var preDragHandleAlpha = Tokens.HANDLE_ALPHA_DEFAULT
 
     // DESIGN.md section 2, motion locks one curve for open and close.
     private val motionInterpolator = DecelerateInterpolator()
@@ -70,39 +99,125 @@ class OverlayView(
      * Idempotent (AGENTS.md): repeated calls with the same target do nothing, and a
      * call during a running animation simply re-targets it (ViewPropertyAnimator
      * replaces the previous animation on the same view).
+     *
+     * A request landing mid-drag never fights the drag (T05 ruling): the drag keeps
+     * moving the window and only the state the drag will restore changes. The timer's
+     * collapse also plays its visuals right away — the panel's expiry must be visible
+     * even with the finger still down — while an expand request just waits for the
+     * drag to end.
      */
     fun setExpanded(expanded: Boolean) {
         val target = if (expanded) State.Expanded else State.Collapsed
+        if (state == State.Dragging) {
+            preDragState = target
+            if (!expanded) showCollapsed()
+            return
+        }
         if (state == target) return
         state = target
-        if (expanded) {
-            handleView.visibility = GONE
-            panelView.visibility = VISIBLE
-            resizeWindow(dp(Tokens.activePreset.panelWidthDp))
-            panelView.animate()
-                .translationX(0f)
-                .setDuration(Tokens.EXPAND_COLLAPSE_MS)
-                .setInterpolator(motionInterpolator)
-            scheduleAutoCollapse()
-        } else {
-            cancelAutoCollapse()
-            // The handle sits under the panel (same dark fill, panel is on top), so it
-            // can become visible now and is only revealed as the panel slides right.
-            handleView.visibility = VISIBLE
-            panelView.animate()
-                .translationX(dp(Tokens.activePreset.panelWidthDp).toFloat())
-                .setDuration(Tokens.EXPAND_COLLAPSE_MS)
-                .setInterpolator(motionInterpolator)
-                .withEndAction {
-                    // Guard: a re-expand mid-animation cancels this one and suppresses
-                    // the end action, but the guard keeps the swap correct even if a
-                    // platform build ever ran it.
-                    if (state == State.Collapsed) {
-                        panelView.visibility = GONE
-                        resizeWindow(dp(Tokens.COLLAPSED_WINDOW_WIDTH_DP))
-                    }
+        if (expanded) showExpanded() else showCollapsed()
+    }
+
+    /** The expanded visuals: reveal the panel, widen the window, restart the FR-5 countdown. */
+    private fun showExpanded() {
+        handleView.visibility = GONE
+        panelView.visibility = VISIBLE
+        resizeWindow(dp(Tokens.activePreset.panelWidthDp))
+        panelView.animate()
+            .translationX(0f)
+            .setDuration(Tokens.EXPAND_COLLAPSE_MS)
+            .setInterpolator(motionInterpolator)
+        scheduleAutoCollapse()
+    }
+
+    /**
+     * The collapsed visuals: reveal the handle, slide the panel out, and narrow the
+     * window when the slide finishes. The end-action guard is "not Expanded" rather
+     * than "== Collapsed" so it also runs after a mid-drag collapse, where the state
+     * is still Dragging (T05).
+     */
+    private fun showCollapsed() {
+        cancelAutoCollapse()
+        // The handle sits under the panel (same dark fill, panel is on top), so it
+        // can become visible now and is only revealed as the panel slides right.
+        handleView.visibility = VISIBLE
+        panelView.animate()
+            .translationX(dp(Tokens.activePreset.panelWidthDp).toFloat())
+            .setDuration(Tokens.EXPAND_COLLAPSE_MS)
+            .setInterpolator(motionInterpolator)
+            .withEndAction {
+                // Guard: a re-expand mid-animation cancels this one and suppresses
+                // the end action, but the guard keeps the swap correct even if a
+                // platform build ever ran it.
+                if (state != State.Expanded) {
+                    panelView.visibility = GONE
+                    resizeWindow(dp(Tokens.COLLAPSED_WINDOW_WIDTH_DP))
                 }
+            }
+    }
+
+    /**
+     * Enters drag mode (FR-6), from a stable state only. Captures everything the move
+     * path needs once — the valid Y range and where the finger grabbed the window —
+     * and applies the DESIGN.md section 2 drag visuals instantly (the release
+     * transition is the one duration the tokens define; entry has none). The haptic
+     * (FR-9) sits behind the same haptics gate the panel buttons use (T06).
+     */
+    private fun startDrag(downRawY: Float) {
+        if (state == State.Dragging) return
+        val params = layoutParams as? WindowManager.LayoutParams ?: return
+        dragRange = SafeArea.compute(context, dp(Tokens.activePreset.panelHeightDp))
+        grabOffsetPx = downRawY - params.y
+        preDragState = state
+        preDragHandleAlpha = handleView.alpha
+        state = State.Dragging
+        // DESIGN.md section 2, motion — drag state: scaleX 1.5, alpha 1.0. The pivot is
+        // the screen edge so the bar grows inward and never off the window surface.
+        handleView.pivotX = handleView.width.toFloat()
+        handleView.pivotY = handleView.height / 2f
+        handleView.scaleX = Tokens.HANDLE_DRAG_SCALE_X
+        handleView.alpha = Tokens.HANDLE_DRAG_ALPHA
+        if (Prefs.hapticsEnabled(context)) {
+            handleView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         }
+    }
+
+    /**
+     * One drag move (FR-6): the window's new top is the finger's rawY minus the grab
+     * offset, clamped to the range captured at drag start, written into the EXISTING
+     * WindowManager.LayoutParams — handle and panel share the window, so the whole
+     * panel follows by itself, and the X axis is locked because only y is ever
+     * written. No allocations and no lookups per event (T09 audit).
+     */
+    private fun dragTo(rawY: Float) {
+        if (state != State.Dragging) return
+        val params = layoutParams as? WindowManager.LayoutParams ?: return
+        params.y = Math.round(SafeArea.clampY(rawY - grabOffsetPx, dragRange))
+        updateWindowLayout()
+    }
+
+    /**
+     * Leaves drag mode: saves the position as a ratio of the range it was dragged in
+     * (never px — 01-ui-spec.md section 4 — so rotation, display-size changes, and
+     * reboots restore a sensible position), restores the state the drag started from,
+     * and returns the handle to normal over DESIGN.md's 100 ms release transition.
+     * Restoring Expanded replays the expanded visuals (idempotent) and, per FR-5,
+     * restarts the no-interaction countdown — the drag's release is an interaction.
+     * Collapsed needs no visuals: the drag never changed them, and a mid-drag timer
+     * expiry already played the collapse.
+     */
+    private fun endDrag() {
+        if (state != State.Dragging) return
+        (layoutParams as? WindowManager.LayoutParams)?.let { params ->
+            Prefs.setYRatio(context, SafeArea.yRatioFromY(params.y.toFloat(), dragRange))
+        }
+        state = preDragState
+        handleView.animate()
+            // 1f is the identity scale, not a token — the drag scale (1.5) is the token.
+            .scaleX(1f)
+            .alpha(preDragHandleAlpha)
+            .setDuration(Tokens.DRAG_RELEASE_MS)
+        if (state == State.Expanded) showExpanded()
     }
 
     /**
@@ -187,6 +302,15 @@ class OverlayView(
         val params = layoutParams as? WindowManager.LayoutParams ?: return
         if (params.width == widthPx) return // idempotent: no redundant IPC
         params.width = widthPx
+        updateWindowLayout()
+    }
+
+    /**
+     * The single guarded updateViewLayout path (AGENTS.md error handling), shared by
+     * the width switch ([resizeWindow]) and the drag's y updates ([dragTo]).
+     */
+    private fun updateWindowLayout() {
+        val params = layoutParams as? WindowManager.LayoutParams ?: return
         try {
             windowManager.updateViewLayout(this, params)
         } catch (e: IllegalArgumentException) {

@@ -49,7 +49,7 @@ Change `[ ]` to `[x]` only after the task's verification passes.
 - [x] T03 Handle and panel UI
 - [x] T04 Expand and collapse gestures
 - [x] T06 Volume and power actions
-- [ ] T05 Drag and position persistence
+- [x] T05 Drag and position persistence
 - [ ] T07 Responsive behavior and gesture exclusion
 - [ ] T08 Settings and onboarding
 - [ ] T09 Vivo resilience and performance
@@ -115,3 +115,10 @@ History:
 - Files changed: Actions.kt (new; volume via adjustSuggestedStreamVolume FLAG_SHOW_UI, power tap/long-press via performGlobalAction with checked+logged results, repeat scheduler 400ms/150ms + PressPolicy JVM-tested, tap-vs-long-press single-fire), overlay/ButtonSpec.kt (additive press lifecycle, ratified in AGENTS.md), overlay/PanelView.kt (down/up/cancel wiring, haptics read at press time, 100ms fade-out on release with instant-appear-wins rule), overlay/OverlayView.kt (Actions injected, defaultButtons call Actions + resetAutoCollapse on every action and repeat tick), Prefs.kt (haptics_enabled default true), VButtonService.kt (constructs Actions, passes in), overlay/Tokens.kt (PRESS_FADE_OUT_MS=100 from DESIGN.md Motion), PressPolicyTest.kt (14/14 total)
 - Unfinished items or things to check: needs device test — volume +/- with system indicator on the active stream (music playing AND ringer mode), hold-to-repeat on both volume buttons, power tap locks / long-press opens power menu, Funtouch OS behavior vs expectation (PRD R6), logcat shows no handler running after release, finger slide-off keeps repeat running (task-letter compliant, judge on device)
 - Notes for the next worker (T05): Actions interface is stable and T11-ready (T11 adds one method + one ButtonSpec list item, zero PanelView changes). Press lifecycle fields are part of ButtonSpec (AGENTS.md updated). State enum gains Dragging (path documented in OverlayView since T03). DESIGN.md drag state: handle scaleX 1.5 + alpha 1.0 while dragging, back on release in 100ms. SafeArea.compute() must have a signature T07 can improve without breaking callers
+- Date: 2026-11-01
+- Worker: orchestrator-dispatched implementer (fresh subagent session), audited by orchestrator; review clean (no fix round)
+- Task worked on: T05 Drag and position persistence
+- Status: done
+- Files changed: overlay/SafeArea.kt (new; pure core clamp/ratio + API-28/29 fallback wrapper, signature stable for T07), overlay/GestureController.kt (long-press enters drag, raw-stream drag handling, release-flick cannot open panel), overlay/OverlayView.kt (Dragging state with preDragState capture, allocation-free move path, yRatio save on release, restore on Expanded), overlay/Tokens.kt (drag-scale/alpha/release-100ms citing DESIGN.md Motion), Prefs.kt (y_ratio key default 0.4), VButtonService.kt (restore yRatio on connect before addView), SafeAreaTest.kt (16 tests; 30 total)
+- Unfinished items or things to check: needs device test — drag tracking without lag, clamps at safe-area extremes, persistence across service restart AND reboot, expanded-drag moves whole panel, 100ms release visuals, release-flick does not open panel
+- Notes for the next worker (T07): (1) SafeArea's API-28/29 inset fallback (status_bar_height/navigation_bar_height resources + DisplayMetrics) is plan-mandated temporary — replace internals with WindowMetrics/insets per 01-ui-spec section 4, keep compute() signature; bottom clamp is currently loose under gesture navigation. (2) T08: applyConfig mid-drag would restore a stale preDragHandleAlpha on release — re-read alpha in endDrag or branch applyConfig mid-drag. (3) Multi-touch: rawY tracks pointer 0 — dragging finger lift with a second finger down makes the window jump to the other finger (self-corrects; pointer-id tracking is the fix if device testing shows it matters). (4) Drag-entry haptic uses HapticFeedbackConstants.LONG_PRESS (heavier than T06's VIRTUAL_KEY) — deliberate-or-lighter call open

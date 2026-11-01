@@ -36,27 +36,60 @@ internal fun shouldOpenOnFling(
 }
 
 /**
- * Gesture logic for the handle (AGENTS.md: gestures live here, not in Views). Wraps a
- * [GestureDetector]: a short tap or a left fling opens the panel (PRD FR-4) through
- * the [onOpen] callback the owning OverlayView supplies. The controller never touches
- * overlay state or the service itself.
- *
- * Long press is deliberately left at the detector's no-op default — drag mode is T05
- * and must not be started from here.
+ * Gesture logic for the handle (AGENTS.md: gestures live here, not in Views). Wraps
+ * a [GestureDetector]: a short tap or a left fling opens the panel (PRD FR-4) and a
+ * long press enters drag mode (PRD FR-6), each reported through the callback the
+ * owning OverlayView supplies. The controller never touches overlay state or the
+ * service itself — it only recognizes gestures and reports them.
  */
 class GestureController(
     private val context: Context,
     private val onOpen: () -> Unit,
+    private val onDragStart: (downRawY: Float) -> Unit,
+    private val onDragMove: (rawY: Float) -> Unit,
+    private val onDragEnd: () -> Unit,
 ) : GestureDetector.SimpleOnGestureListener() {
 
     private val detector = GestureDetector(context, this)
 
     /**
-     * Entry point the [HandleView] forwards its touch stream to. The handle consumes
-     * every event itself, so the return value only reports what the detector made of
-     * the gesture.
+     * Which gesture the CURRENT touch stream belongs to — the raw-event bookkeeping
+     * below, not overlay state (the overlay keeps its own enum). Set by [onLongPress],
+     * cleared on UP/CANCEL and on the next DOWN, so it can never leak across streams.
      */
-    fun onTouch(event: MotionEvent): Boolean = detector.onTouchEvent(event)
+    private var dragInProgress = false
+
+    /**
+     * Entry point the [HandleView] forwards its touch stream to. The handle consumes
+     * every event itself, so the return value only reports what the controller made of
+     * the gesture.
+     *
+     * The drag rides the raw stream, not the detector: once [onLongPress] has fired,
+     * moves and the final UP/CANCEL are handled here and deliberately NOT forwarded to
+     * the detector, because a drag is neither a tap nor a fling candidate and a release
+     * flick must never open the panel (FR-6). The X axis is locked by only ever
+     * reporting rawY — horizontal movement is ignored entirely.
+     */
+    fun onTouch(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN ->
+                // A new stream: never inherit a drag from an abandoned one (e.g. a
+                // stream that ended when the window was removed mid-drag).
+                dragInProgress = false
+            MotionEvent.ACTION_MOVE ->
+                if (dragInProgress) {
+                    onDragMove(event.rawY)
+                    return true
+                }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                if (dragInProgress) {
+                    dragInProgress = false
+                    onDragEnd()
+                    return true
+                }
+        }
+        return detector.onTouchEvent(event)
+    }
 
     override fun onSingleTapUp(e: MotionEvent): Boolean {
         // Open immediately on UP: no confirmed-tap delay (PRD NFR-4, under 100 ms).
@@ -86,5 +119,13 @@ class GestureController(
         )
         if (opens) onOpen()
         return opens
+    }
+
+    override fun onLongPress(e: MotionEvent) {
+        // FR-6: the long press is the drag-mode entry. The overlay decides whether the
+        // state allows it (stable Collapsed/Expanded) and supplies haptic and visuals —
+        // the controller only reports where the finger grabbed the screen.
+        dragInProgress = true
+        onDragStart(e.rawY)
     }
 }

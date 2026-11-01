@@ -33,4 +33,26 @@ object Prefs {
     fun hapticsEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
             .getBoolean(KEY_HAPTICS_ENABLED, HAPTICS_ENABLED_DEFAULT)
+
+    /**
+     * FR-6: the overlay's vertical position, stored as a ratio (0.0 to 1.0) of the
+     * valid safe-area range — never px (PRD section 9, 01-ui-spec.md section 4), so
+     * the position survives rotation, a display-size change, and reboots. The px
+     * conversions live in SafeArea; this file only owns the key and its default.
+     */
+    private const val KEY_Y_RATIO = "y_ratio"
+    const val Y_RATIO_DEFAULT = 0.4f
+
+    /** Saved position ratio, or the default (0.4, upper-middle area) when nothing was stored yet. */
+    fun yRatio(context: Context): Float =
+        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+            .getFloat(KEY_Y_RATIO, Y_RATIO_DEFAULT)
+
+    /** Saves the position ratio once per drag release (FR-6). Written only by the overlay. */
+    fun setYRatio(context: Context, ratio: Float) {
+        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+            .edit()
+            .putFloat(KEY_Y_RATIO, ratio)
+            .apply()
+    }
 }
