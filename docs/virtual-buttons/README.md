@@ -46,7 +46,7 @@ Change `[ ]` to `[x]` only after the task's verification passes.
 
 - [x] T01 Project setup and skeleton
 - [x] T02 AccessibilityService and overlay window
-- [ ] T03 Handle and panel UI
+- [x] T03 Handle and panel UI
 - [ ] T04 Expand and collapse gestures
 - [ ] T06 Volume and power actions
 - [ ] T05 Drag and position persistence
@@ -94,3 +94,10 @@ History:
 - Files changed: VButtonService.kt (service, VButtonService.instance singleton with private set, attachOverlay/detachOverlay idempotent + try-catch, 24dp x 72dp placeholder window), res/xml/accessibility_service_config.xml, AndroidManifest.xml (service declaration, still zero permissions), strings.xml
 - Unfinished items or things to check: needs device test — service listed in Settings > Accessibility with description; placeholder visible on right edge over all apps; toggling off removes it without crash; `adb shell dumpsys accessibility` shows no event types
 - Notes for the next worker: attachOverlay/detachOverlay are private in VButtonService — T03 extends them in place to swap placeholder for OverlayView (AGENTS.md integration point). dp() in VButtonService truncates with toInt(); use Math.round in new helpers. windowManager field not nulled in onDestroy (parked Minor, harmless). Placeholder pinned to 24x72dp via onMeasure because a bare View in a WRAP_CONTENT window measures full height — T03 replaces it entirely
+- Date: 2026-11-01
+- Worker: orchestrator-dispatched implementer (fresh subagent session), audited by orchestrator; 1 fix round (dp() truncation -> Math.round)
+- Task worked on: T03 Handle and panel UI
+- Status: done
+- Files changed: overlay/Tokens.kt (single source of all overlay dp/colors/durations, presets S/M/L as data), overlay/ButtonSpec.kt, overlay/OverlayView.kt (setExpanded/applyConfig idempotent, state enum, 150ms translationX DecelerateInterpolator), overlay/HandleView.kt (5x72dp bar, 1dp border, rounded ends, alpha 0.6), overlay/PanelView.kt (renders from ButtonSpec list, pressed highlight circle, icon inset math), VButtonService.kt (placeholder -> OverlayView, dp() now Math.round), strings.xml (3 contentDescriptions), drawable ic_volume_up/ic_volume_down/ic_power.xml (byte-identical copies)
+- Unfinished items or things to check: needs device test — both states visually (slide direction/feel, window width via Layout Inspector), readability on white AND black app backgrounds, alignment at handle Y. Design check section 5 passed in code review; screenshot-dependent items pending
+- Notes for the next worker (T04): state model is one enum (Collapsed/Expanded) with a documented path for Dragging (T05). Collapse-side window shrink (60->24dp) runs in the guarded animation end action so the close slide stays visible — expand grows immediately. In-flight animation not canceled on detach (benign caught error-log noise, parked). T08: a preset change while collapsed must refresh the parked translationX offset. PRESET_S/L + panelHeightDp + repeatable are declared-unused until T05-T08 (spec data, not dead code)

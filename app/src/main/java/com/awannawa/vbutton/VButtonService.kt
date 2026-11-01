@@ -6,30 +6,21 @@ import android.content.Intent
 import android.graphics.PixelFormat
 import android.util.Log
 import android.view.Gravity
-import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
+import com.awannawa.vbutton.overlay.OverlayView
+import com.awannawa.vbutton.overlay.Tokens
 
 /**
  * Owns the overlay window: attaches it when the system binds the service and
  * removes it on unbind/destroy. The config requests no accessibility events,
  * so the service is idle (and costs nothing) unless its overlay is touched.
- * T03 replaces the placeholder box with the real overlay UI.
+ * All overlay UI lives in OverlayView and its children.
  */
 class VButtonService : AccessibilityService() {
 
     companion object {
         private const val LOG_TAG = "VButton"
-
-        // DESIGN.md handle fill, so the placeholder already looks like the future handle.
-        private const val PLACEHOLDER_COLOR = 0xFF202124.toInt()
-
-        // 01-ui-spec section 3: collapsed window width is the handle's 24dp touch width.
-        private const val WINDOW_WIDTH_DP = 24
-
-        // 01-ui-spec section 2: handle height; the placeholder borrows it so the box
-        // has a real size under a WRAP_CONTENT window.
-        private const val HANDLE_HEIGHT_DP = 72
 
         /**
          * The only mutable global state AGENTS.md allows. T08 reads it from
@@ -41,7 +32,7 @@ class VButtonService : AccessibilityService() {
     }
 
     private var windowManager: WindowManager? = null
-    private var overlayView: View? = null
+    private var overlayView: OverlayView? = null
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -69,25 +60,18 @@ class VButtonService : AccessibilityService() {
 
     /**
      * Idempotent (AGENTS.md): adds the overlay window once, even if called again.
-     * T03 swaps the placeholder for OverlayView and extends the window params here.
+     * The window starts collapsed (24dp wide) and only OverlayView.setExpanded
+     * changes its width afterwards.
      */
     @SuppressLint("RtlHardcoded") // RIGHT is required, see the gravity comment below
     private fun attachOverlay() {
         if (overlayView != null) return
         val manager = windowManager ?: return
 
-        // A plain View would fill the whole WRAP_CONTENT window spec to screen height
-        // (View.getDefaultSize returns the full AT_MOST size), so the placeholder pins
-        // itself to the handle's locked geometry (24dp x 72dp, 01-ui-spec section 2).
-        val placeholder = object : View(this) {
-            override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-                setMeasuredDimension(dp(WINDOW_WIDTH_DP), dp(HANDLE_HEIGHT_DP))
-            }
-        }
-        placeholder.setBackgroundColor(PLACEHOLDER_COLOR)
+        val overlay = OverlayView(this, manager)
 
         val params = WindowManager.LayoutParams(
-            dp(WINDOW_WIDTH_DP),
+            dp(Tokens.COLLAPSED_WINDOW_WIDTH_DP),
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
@@ -99,8 +83,8 @@ class VButtonService : AccessibilityService() {
         }
 
         try {
-            manager.addView(placeholder, params)
-            overlayView = placeholder
+            manager.addView(overlay, params)
+            overlayView = overlay
         } catch (e: IllegalArgumentException) {
             Log.e(LOG_TAG, "addView failed", e)
         }
@@ -120,7 +104,11 @@ class VButtonService : AccessibilityService() {
         }
     }
 
-    /** Converts dp to px with the current density; px values are never cached across config changes. */
+    /**
+     * Converts dp to px with the current density; px values are never cached across
+     * config changes. Rounds like the overlay's Tokens.dp (no truncation, so a
+     * fractional density from display-size zoom never loses the last pixel).
+     */
     private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density).toInt()
+        Math.round(value * resources.displayMetrics.density)
 }

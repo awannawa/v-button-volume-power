@@ -2,4 +2,7 @@
 <resources>
     <string name="app_name">Virtual Buttons</string>
     <string name="accessibility_service_description">Shows virtual volume and power buttons on the right edge of the screen</string>
+    <string name="button_volume_up">Volume up</string>
+    <string name="button_volume_down">Volume down</string>
+    <string name="button_power">Power</string>
 </resources>
