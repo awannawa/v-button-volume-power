@@ -21,4 +21,16 @@ object Prefs {
     fun autoCollapseTimeoutMs(context: Context): Long =
         context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
             .getLong(KEY_AUTO_COLLAPSE_TIMEOUT_MS, AUTO_COLLAPSE_TIMEOUT_MS_DEFAULT)
+
+    /**
+     * FR-9: short haptic feedback when a panel button is pressed. The write path
+     * (settings toggle) arrives in T08; until then the default always applies.
+     */
+    private const val KEY_HAPTICS_ENABLED = "haptics_enabled"
+    const val HAPTICS_ENABLED_DEFAULT = true
+
+    /** FR-9 haptics setting, or the default (on) when nothing was stored yet. */
+    fun hapticsEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+            .getBoolean(KEY_HAPTICS_ENABLED, HAPTICS_ENABLED_DEFAULT)
 }

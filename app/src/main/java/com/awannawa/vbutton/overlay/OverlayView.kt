@@ -8,6 +8,7 @@ import android.view.MotionEvent
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
+import com.awannawa.vbutton.Actions
 import com.awannawa.vbutton.Prefs
 import com.awannawa.vbutton.R
 
@@ -22,12 +23,14 @@ private const val LOG_TAG = "VButton"
  *
  * Expanding comes from [GestureController] (tap or left fling on the handle, FR-4).
  * Collapsing comes from the auto-collapse timer or a tap outside the panel
- * (ACTION_OUTSIDE, FR-5). Settings (T08) will call [applyConfig]; T06 calls
- * [resetAutoCollapse] on every button action.
+ * (ACTION_OUTSIDE, FR-5). Settings (T08) will call [applyConfig]. The panel buttons
+ * act through the [Actions] instance the service passes in (T06); this view never
+ * touches AudioManager or the service itself (AGENTS.md).
  */
 class OverlayView(
     context: Context,
     private val windowManager: WindowManager,
+    private val actions: Actions,
 ) : FrameLayout(context) {
 
     /**
@@ -103,10 +106,12 @@ class OverlayView(
     }
 
     /**
-     * Restarts the auto-collapse countdown (FR-5). Public because every interaction
-     * with the panel must push the collapse back — T06 calls this on every volume or
-     * power action. A no-op while collapsed so no callback can ever be scheduled
-     * outside an expanded overlay (NFR-1).
+     * Restarts the auto-collapse countdown (FR-5). Called from this view's own
+     * ButtonSpec wiring on every volume action (T06) so the panel does not close
+     * while the user is still holding a volume button. A no-op while collapsed so no
+     * callback can ever be scheduled outside an expanded overlay (NFR-1). (Power
+     * actions need no reset: the panel touch itself already pushed the timer back on
+     * DOWN, and a power tap locks the screen.)
      */
     fun resetAutoCollapse() {
         if (state != State.Expanded) return
@@ -157,6 +162,10 @@ class OverlayView(
         // service detaches the overlay on unbind/destroy, so this kills any pending
         // collapse when the service is turned off with the panel open.
         autoCollapseHandler.removeCallbacks(autoCollapseRunnable)
+        // A finger can still be holding a panel button when the service is turned
+        // off: stop its repeat/long-press timers too, so no press handler keeps
+        // running after the view is gone (T06 acceptance criteria).
+        actions.cancelPendingPresses()
         super.onDetachedFromWindow()
     }
 
@@ -187,34 +196,63 @@ class OverlayView(
     }
 
     /**
-     * The v1 buttons (PRD FR-7/FR-8: volume holds repeat, power does not). The action
-     * lambdas are no-ops until T06 wires real Actions through them; T11 adds items
-     * to this list only.
+     * The v1 buttons (PRD FR-7/FR-8: volume holds repeat, power does not). Each spec
+     * declares its semantic actions (tapAction/longPressAction — also the TalkBack
+     * activation path) and gets its physical press lifecycle from
+     * [Actions.pressHandler]; T11 adds items to this list only.
      */
-    private fun defaultButtons(): List<ButtonSpec> = listOf(
-        ButtonSpec(
-            id = "volume_up",
-            iconRes = R.drawable.ic_volume_up,
-            contentDescriptionRes = R.string.button_volume_up,
-            tapAction = {},
-            longPressAction = {},
-            repeatable = true,
-        ),
-        ButtonSpec(
-            id = "volume_down",
-            iconRes = R.drawable.ic_volume_down,
-            contentDescriptionRes = R.string.button_volume_down,
-            tapAction = {},
-            longPressAction = {},
-            repeatable = true,
-        ),
-        ButtonSpec(
-            id = "power",
-            iconRes = R.drawable.ic_power,
-            contentDescriptionRes = R.string.button_power,
-            tapAction = {},
-            longPressAction = {},
-            repeatable = false,
-        ),
-    )
+    private fun defaultButtons(): List<ButtonSpec> {
+        /** One button row: the actions are wired once and shared by both paths. */
+        fun button(
+            id: String,
+            iconRes: Int,
+            contentDescriptionRes: Int,
+            tap: () -> Unit,
+            longPress: () -> Unit,
+            repeatable: Boolean,
+        ) = ButtonSpec(
+            id = id,
+            iconRes = iconRes,
+            contentDescriptionRes = contentDescriptionRes,
+            tapAction = tap,
+            longPressAction = longPress,
+            repeatable = repeatable,
+            pressAction = actions.pressHandler(tap, longPress, repeatable),
+        )
+
+        return listOf(
+            button(
+                id = "volume_up",
+                iconRes = R.drawable.ic_volume_up,
+                contentDescriptionRes = R.string.button_volume_up,
+                // T06: every volume action pushes the auto-collapse back so the panel
+                // does not close while the user is still pressing.
+                tap = {
+                    actions.volumeUp()
+                    resetAutoCollapse()
+                },
+                longPress = {}, // volume has no long-press semantics (FR-7: hold repeats)
+                repeatable = true,
+            ),
+            button(
+                id = "volume_down",
+                iconRes = R.drawable.ic_volume_down,
+                contentDescriptionRes = R.string.button_volume_down,
+                tap = {
+                    actions.volumeDown()
+                    resetAutoCollapse()
+                },
+                longPress = {},
+                repeatable = true,
+            ),
+            button(
+                id = "power",
+                iconRes = R.drawable.ic_power,
+                contentDescriptionRes = R.string.button_power,
+                tap = { actions.powerTap() },
+                longPress = { actions.powerLongPress() },
+                repeatable = false,
+            ),
+        )
+    }
 }

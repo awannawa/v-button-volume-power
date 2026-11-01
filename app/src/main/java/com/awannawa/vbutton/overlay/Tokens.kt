@@ -65,6 +65,9 @@ object Tokens {
 
     /** DESIGN.md section 2, motion: open and close duration. */
     const val EXPAND_COLLAPSE_MS = 150L
+
+    /** DESIGN.md section 2, motion: the pressed highlight fades out on release. */
+    const val PRESS_FADE_OUT_MS = 100L
 }
 
 /**

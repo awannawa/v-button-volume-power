@@ -55,7 +55,7 @@ The goal is code that stays correct when combined with later tasks, not code tha
 - All SharedPreferences keys and their default values live only in `Prefs.kt`.
 - Overlay state is one explicit enum (`Collapsed`, `Expanded`, `Dragging`), not several interdependent booleans.
 - Separation of concerns: rendering in Views, gesture logic in `GestureController`, system actions in `Actions`. A View must never call `AudioManager` or the service directly.
-- Panel buttons are defined as a list of `ButtonSpec` (id, icon, contentDescription, tap action, long-press action, repeatable) starting in T03, so T11 only adds items without modifying `PanelView`.
+- Panel buttons are defined as a list of `ButtonSpec` (id, icon, contentDescription, tap action, press lifecycle for down/up/cancel, long-press action, repeatable) starting in T03, so T11 only adds items without modifying `PanelView`.
 - Configuration from settings enters through a single `applyConfig()` function on the overlay, so T08 does not have to rewrite T03 through T07.
 - Pure logic (position clamping, `yRatio` conversion, compact preset selection) is separated from Android APIs and covered by JVM unit tests.
 - Lifecycle: every view, Handler callback, listener, and receiver that is created must be cleaned up in `onUnbind` or `onDestroy`. `attach`, `detach`, and `setExpanded` must be idempotent.

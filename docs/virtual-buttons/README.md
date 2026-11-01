@@ -48,7 +48,7 @@ Change `[ ]` to `[x]` only after the task's verification passes.
 - [x] T02 AccessibilityService and overlay window
 - [x] T03 Handle and panel UI
 - [x] T04 Expand and collapse gestures
-- [ ] T06 Volume and power actions
+- [x] T06 Volume and power actions
 - [ ] T05 Drag and position persistence
 - [ ] T07 Responsive behavior and gesture exclusion
 - [ ] T08 Settings and onboarding
@@ -108,3 +108,10 @@ History:
 - Files changed: overlay/GestureController.kt (new; tap/left-fling detection, ViewConfiguration thresholds at event time, dominance gate), overlay/OverlayView.kt (auto-collapse Handler with paired remove paths, resetAutoCollapse() public for T06, ACTION_OUTSIDE collapse guarded by state), overlay/HandleView.kt (touch consumption + forwarding), Prefs.kt (auto-collapse timeout key, default 3000), VButtonService.kt (FLAG_WATCH_OUTSIDE_TOUCH added, FLAG_NOT_FOCUSABLE kept), ShouldOpenOnFlingTest.kt (9/9)
 - Unfinished items or things to check: needs device test — 20 taps + 20 swipes open the panel; auto-collapse after ~3s and reset on any panel touch; tap outside collapses (no flicker when collapsed); handle touches don't leak to the app below; service-off-while-open is clean in logcat
 - Notes for the next worker (T06): wire Actions-backed lambdas into the ButtonSpec list inside OverlayView (defaultButtons) and call its own resetAutoCollapse() on volume actions — VButtonService.overlayView stays private; construct Actions in VButtonService and pass into OverlayView. See T04 task-file Notes for the lint deferral and fling ruling
+- Date: 2026-11-01
+- Worker: orchestrator-dispatched implementer (fresh subagent session), audited by orchestrator; 1 fix round (implemented the locked 100ms pressed-highlight fade-out per DESIGN.md Motion, orchestrator ruling; Tokens gained PRESS_FADE_OUT_MS)
+- Task worked on: T06 Volume and power actions
+- Status: done
+- Files changed: Actions.kt (new; volume via adjustSuggestedStreamVolume FLAG_SHOW_UI, power tap/long-press via performGlobalAction with checked+logged results, repeat scheduler 400ms/150ms + PressPolicy JVM-tested, tap-vs-long-press single-fire), overlay/ButtonSpec.kt (additive press lifecycle, ratified in AGENTS.md), overlay/PanelView.kt (down/up/cancel wiring, haptics read at press time, 100ms fade-out on release with instant-appear-wins rule), overlay/OverlayView.kt (Actions injected, defaultButtons call Actions + resetAutoCollapse on every action and repeat tick), Prefs.kt (haptics_enabled default true), VButtonService.kt (constructs Actions, passes in), overlay/Tokens.kt (PRESS_FADE_OUT_MS=100 from DESIGN.md Motion), PressPolicyTest.kt (14/14 total)
+- Unfinished items or things to check: needs device test — volume +/- with system indicator on the active stream (music playing AND ringer mode), hold-to-repeat on both volume buttons, power tap locks / long-press opens power menu, Funtouch OS behavior vs expectation (PRD R6), logcat shows no handler running after release, finger slide-off keeps repeat running (task-letter compliant, judge on device)
+- Notes for the next worker (T05): Actions interface is stable and T11-ready (T11 adds one method + one ButtonSpec list item, zero PanelView changes). Press lifecycle fields are part of ButtonSpec (AGENTS.md updated). State enum gains Dragging (path documented in OverlayView since T03). DESIGN.md drag state: handle scaleX 1.5 + alpha 1.0 while dragging, back on release in 100ms. SafeArea.compute() must have a signature T07 can improve without breaking callers

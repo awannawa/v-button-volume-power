@@ -61,14 +61,15 @@ class VButtonService : AccessibilityService() {
     /**
      * Idempotent (AGENTS.md): adds the overlay window once, even if called again.
      * The window starts collapsed (24dp wide) and only OverlayView.setExpanded
-     * changes its width afterwards.
+     * changes its width afterwards. Actions is created here too, one instance per
+     * overlay, so its press-handler registry never grows across rebinds.
      */
     @SuppressLint("RtlHardcoded") // RIGHT is required, see the gravity comment below
     private fun attachOverlay() {
         if (overlayView != null) return
         val manager = windowManager ?: return
 
-        val overlay = OverlayView(this, manager)
+        val overlay = OverlayView(this, manager, Actions(this))
 
         val params = WindowManager.LayoutParams(
             dp(Tokens.COLLAPSED_WINDOW_WIDTH_DP),
