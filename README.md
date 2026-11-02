@@ -19,15 +19,15 @@ dan semuanya bisa diatur dari layar Settings bawaan aplikasi.
 
 ## Fitur
 
-- **Handle** tipis (5dp, area sentuh 24dp) di tepi kanan layar, selalu ada di semua aplikasi.
-- **Tap atau swipe kiri** pada handle membuka panel berisi 3 tombol: Volume +, Volume −, Power.
+- **Handle** tipis (5dp, area sentuh 24dp) di tepi kanan atau kiri layar (bisa dipilih), selalu ada di semua aplikasi.
+- **Tap atau swipe ke dalam** pada handle membuka panel berisi 3 tombol: Volume +, Volume −, Power. Sisi kiri menampilkan semuanya secara cermin (handle di kiri, panel terbuka dari kiri, swipe ke kanan).
 - **Power**: tap = lock screen, tahan ±0,5 detik = menu power sistem.
 - **Tahan Volume +/−**: volume terus berubah sampai dilepas (repeat otomatis).
 - **Long-press handle** lalu geser: pindahkan posisi vertikal; posisi tersimpan
   (sebagai rasio layar, jadi aman setelah rotasi atau ganti perangkat).
 - Panel menutup otomatis setelah 3 detik tanpa interaksi (bisa diatur 1–10 detik),
   atau saat menyentuh di luar panel.
-- **Settings**: ukuran tombol (S/M/L), opasitas handle, timeout auto-collapse, haptic
+- **Settings**: ukuran tombol (S/M/L), sisi layar (kanan/kiri), opasitas handle, timeout auto-collapse, haptic
   on/off, reset posisi — semua berlaku langsung tanpa restart service.
 - Panduan enable + jalur "Allow restricted settings" (Android 13+ untuk APK sideload),
   plus panduan keep-alive khusus Funtouch OS (Autostart, baterai unrestricted, lock di
