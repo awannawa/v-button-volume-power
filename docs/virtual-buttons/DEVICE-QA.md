@@ -49,6 +49,13 @@ personal key). Install: `adb install -r app/build/outputs/apk/release/app-releas
 14. **Known risk check**: if any device runs API 28/29 (older than the T1 Pro), check
     the handle against the navigation bar in landscape — the right-inset fallback is 0
     on those levels only (parked plan limitation, see T07 notes).
+15. **Screen side (left)**: set Settings → Screen side → Left. Verify the handle sits
+    flush to the left edge over both a white and a black app; the panel opens from the
+    left at the same height; a rightward swipe opens it while a leftward swipe and the
+    Back gesture do not navigate; the drag pivot grows inward; rotation keeps it on the
+    left; the choice survives service off/on and a reboot. Then set it back to Right and
+    confirm the original behaviour. Changing the side while the panel is open must move
+    it live without closing it, keeping the same height.
 
 ## Known documented limitations (do not re-report)
 

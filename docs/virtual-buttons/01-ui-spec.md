@@ -34,11 +34,12 @@ Visual tokens (colors, borders, radii, motion, state visuals) live in `DESIGN.md
 
 - Write every dimension in dp. Compute px from the density at runtime and never cache px across configuration changes.
 - Use `Gravity.RIGHT or Gravity.TOP`, not `END`, so the overlay does not jump to the left when the system language is RTL.
+- Screen side is a setting (right default). On the left every rule mirrors: the bar sits flush to the left bound, the panel slides in from the left, the opening fling is rightward (the right side opens on a leftward fling), and the drag pivot sits at the left edge. Use `Gravity.LEFT` (physical), never `START`. Recall the left inset from `WindowMetrics` on API 30 and above; the 28/29 fallback reads 0 on the left, the same limitation as the right inset.
 - Safe area: get `systemBars` and `displayCutout` insets through `WindowMetrics` (API 30 and above). Fallback for API 28 and 29: `DisplayMetrics` and the `status_bar_height` resource.
 - Valid Y range: from `insetTop + 8dp` to `screenHeight - insetBottom - panelHeight - 8dp`.
 - Store the position as a ratio `yRatio` (0.0 to 1.0) of the valid Y range, not as px. Restore with `y = minY + yRatio * (maxY - minY)`. This keeps the position sensible after rotation, a display size change, or a move to another device.
 - Compact mode: if the valid Y range is smaller than the panel height (for example, short landscape screens), step down one preset at a time until it fits, down to preset S at minimum.
-- X offset: set `lp.x` equal to the right inset (a navigation bar on the right side in landscape with 3-button navigation, or a cutout) so the overlay does not cover system areas.
+- X offset: set `lp.x` equal to the inset on the anchored side (a navigation bar on that side in landscape with 3-button navigation, or a cutout) so the overlay does not cover system areas.
 - Large display size or zoom: because everything uses dp, sizes scale up with it. The compact mode rule still applies.
 - Font scale has no effect because there is no text.
 - Touch thresholds use `ViewConfiguration` (`scaledTouchSlop`, `scaledMinimumFlingVelocity`), not fixed px values.

@@ -39,6 +39,7 @@ Spacing
 
 - 4dp base grid. Panel padding 6dp vertical and 4dp horizontal, gap 4dp, screen-edge margin 8dp.
 - Sizes and presets are defined in `docs/virtual-buttons/01-ui-spec.md`.
+- The handle and panel edge is a user setting: right (default) or left. Both are physical sides (`Gravity.RIGHT` / `Gravity.LEFT`, never `END` / `START`), so RTL never flips the overlay. No new token is introduced by this choice.
 
 Elevation and effects
 
