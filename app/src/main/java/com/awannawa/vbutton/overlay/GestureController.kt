@@ -21,15 +21,18 @@ import kotlin.math.abs
  * swipe, not any gesture with a leftward component.
  */
 internal fun shouldOpenOnFling(
+    side: ScreenSide,
     velocityX: Float,
     velocityY: Float,
     horizontalTravelPx: Float,
     touchSlopPx: Float,
     minFlingVelocityPx: Float,
 ): Boolean {
-    if (velocityX >= 0f) return false // FR-4: a swipe to the LEFT opens; rightward never does
+    // Opening travel is INWARD from the edge: right side -> leftward (<0), left side -> rightward (>0).
+    val opensInward = if (side == ScreenSide.Left) velocityX > 0f else velocityX < 0f
+    if (!opensInward) return false
     // Dominance is strict >, so |velocityX| == |velocityY| stays closed: equality is
-    // not a leftward swipe, and a false-open is worse than a missed one.
+    // not an inward swipe, and a false-open is worse than a missed one.
     if (abs(velocityX) <= abs(velocityY)) return false
     if (abs(velocityX) < minFlingVelocityPx) return false
     return abs(horizontalTravelPx) >= touchSlopPx
@@ -44,6 +47,7 @@ internal fun shouldOpenOnFling(
  */
 class GestureController(
     private val context: Context,
+    private val side: () -> ScreenSide,
     private val onOpen: () -> Unit,
     private val onDragStart: (downRawY: Float) -> Unit,
     private val onDragMove: (rawY: Float) -> Unit,
@@ -111,6 +115,7 @@ class GestureController(
         // between gestures, so px values are never cached (01-ui-spec.md section 4).
         val config = ViewConfiguration.get(context)
         val opens = shouldOpenOnFling(
+            side = side(),
             velocityX = velocityX,
             velocityY = velocityY,
             horizontalTravelPx = e2.x - down.x,

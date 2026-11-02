@@ -63,6 +63,7 @@ class OverlayView(
     // The controller is created first: HandleView forwards its touch stream to it.
     private val gestureController = GestureController(
         context,
+        side = { Prefs.screenSide(context) },
         onOpen = { setExpanded(true) },
         onDragStart = { downRawY -> startDrag(downRawY) },
         onDragMove = { rawY -> dragTo(rawY) },
