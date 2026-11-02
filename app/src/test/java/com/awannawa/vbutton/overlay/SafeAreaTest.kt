@@ -168,6 +168,7 @@ class SafeAreaTest {
             screenHeightPx = 800,
             insetTopPx = 100,
             insetBottomPx = 100,
+            leftInsetPx = 0,
             rightInsetPx = 0,
         )
         assertEquals(552, SafeArea.availableHeightPx(screen, 24))
@@ -178,7 +179,7 @@ class SafeAreaTest {
         // The "fits" measure of compact mode must agree with SafeArea.compute: a panel
         // of exactly the available height gives max == min — non-inverted, so the
         // position restore has a (degenerate but valid) range to work with.
-        val screen = SafeArea.ScreenInsets(800, 100, 100, 0)
+        val screen = SafeArea.ScreenInsets(800, 100, 100, 0, 0)
         val available = SafeArea.availableHeightPx(screen, 24)
         val exact = SafeArea.compute(800, 100, 100, available, 24)
         assertEquals(124, exact.minPx)
@@ -228,10 +229,23 @@ class SafeAreaTest {
 
     @Test
     fun `insets overload computes the same range as the pure core`() {
-        val screen = SafeArea.ScreenInsets(2400, 100, 100, 42)
+        val screen = SafeArea.ScreenInsets(2400, 100, 100, 0, 42)
         assertEquals(
             SafeArea.compute(2400, 100, 100, 500, 24),
             SafeArea.compute(screen, 500, 24),
         )
+    }
+
+    @Test
+    fun `inset for side picks the matching edge`() {
+        val screen = SafeArea.ScreenInsets(
+            screenHeightPx = 2400,
+            insetTopPx = 100,
+            insetBottomPx = 100,
+            leftInsetPx = 42,
+            rightInsetPx = 90,
+        )
+        assertEquals(42, SafeArea.insetForSide(screen, ScreenSide.Left))
+        assertEquals(90, SafeArea.insetForSide(screen, ScreenSide.Right))
     }
 }

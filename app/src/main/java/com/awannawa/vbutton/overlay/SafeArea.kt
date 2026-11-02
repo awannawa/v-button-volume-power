@@ -34,6 +34,7 @@ internal object SafeArea {
         val screenHeightPx: Int,
         val insetTopPx: Int,
         val insetBottomPx: Int,
+        val leftInsetPx: Int,
         val rightInsetPx: Int,
     )
 
@@ -90,6 +91,7 @@ internal object SafeArea {
                     screenHeightPx = metrics.bounds.height(),
                     insetTopPx = maxOf(bars.top, cutout.top),
                     insetBottomPx = maxOf(bars.bottom, cutout.bottom),
+                    leftInsetPx = maxOf(bars.left, cutout.left),
                     rightInsetPx = maxOf(bars.right, cutout.right),
                 )
             }
@@ -99,9 +101,14 @@ internal object SafeArea {
             screenHeightPx = metrics.heightPixels,
             insetTopPx = systemDimenPx(context, "status_bar_height"),
             insetBottomPx = systemDimenPx(context, "navigation_bar_height"),
+            leftInsetPx = 0, // same limitation as the right inset below on API 28/29
             rightInsetPx = 0,
         )
     }
+
+    /** The inset on the edge the overlay hugs: [ScreenSide.Left] reads the left inset, else the right. */
+    fun insetForSide(screen: ScreenInsets, side: ScreenSide): Int =
+        if (side == ScreenSide.Left) screen.leftInsetPx else screen.rightInsetPx
 
     /**
      * Android wrapper, same signature T05 left it: fresh [ScreenInsets] plus the
