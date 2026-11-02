@@ -15,6 +15,7 @@ import android.view.View
 class HandleView(
     context: Context,
     private val gestureController: GestureController,
+    private val side: () -> ScreenSide,
 ) : View(context) {
 
     // One drawable per view instance, never shared, so no mutate() is needed.
@@ -27,15 +28,13 @@ class HandleView(
     }
 
     override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
-        // The bar hugs the view's right edge. Canvas coordinates run left-to-right in
-        // every locale, so this stays on the physical right edge in RTL too (same
-        // reasoning as the window's Gravity.RIGHT, PRD section 10).
-        bar.setBounds(
-            width - dp(Tokens.HANDLE_BAR_WIDTH_DP),
-            0,
-            width,
-            height,
-        )
+        // The bar hugs the chosen screen edge. Canvas coordinates run left-to-right in
+        // every locale, so drawing at the left bound stays on the physical left edge, and
+        // at the right bound on the physical right edge (same reasoning as the window's
+        // physical Gravity, PRD section 10).
+        val barPx = dp(Tokens.HANDLE_BAR_WIDTH_DP)
+        val left = if (side() == ScreenSide.Left) 0 else width - barPx
+        bar.setBounds(left, 0, left + barPx, height)
     }
 
     override fun onDraw(canvas: Canvas) {

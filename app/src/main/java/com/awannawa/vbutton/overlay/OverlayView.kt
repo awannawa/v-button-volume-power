@@ -69,7 +69,7 @@ class OverlayView(
         onDragMove = { rawY -> dragTo(rawY) },
         onDragEnd = { endDrag() },
     )
-    private val handleView = HandleView(context, gestureController)
+    private val handleView = HandleView(context, gestureController, side = { Prefs.screenSide(context) })
 
     /**
      * The v1 buttons (PRD FR-7/FR-8: volume holds repeat, power does not). Built once
@@ -127,14 +127,26 @@ class OverlayView(
     // DESIGN.md section 2, motion locks one curve for open and close.
     private val motionInterpolator = DecelerateInterpolator()
 
+    /** The stored physical edge, read on demand so a live side change applies next pass. */
+    private fun currentSide(): ScreenSide = Prefs.screenSide(context)
+
+    /**
+     * The panel's off-window park offset (px): the given preset's width parked past the
+     * anchored edge, so a hidden panel sits fully outside for a real slide-in. Mirrored
+     * by side: +width parks beyond the right edge, -width beyond the left.
+     */
+    private fun parkOffsetPx(side: ScreenSide, preset: Tokens.SizePreset): Float {
+        val width = dp(preset.panelWidthDp).toFloat()
+        return if (side == ScreenSide.Left) -width else width
+    }
+
     init {
         addView(handleView, LayoutParams(LayoutParams.MATCH_PARENT, dp(Tokens.HANDLE_HEIGHT_DP)))
         addView(panelView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         panelView.visibility = GONE
         // Park the panel fully outside the window so the first expand animates a real
-        // slide-in from the right instead of popping into place. Parked at the
-        // effective (compact) preset's width, matching showCollapsed's target.
-        panelView.translationX = dp(effectivePreset.panelWidthDp).toFloat()
+        // slide-in from the anchored edge instead of popping into place.
+        panelView.translationX = parkOffsetPx(currentSide(), effectivePreset)
         applyConfig()
     }
 
@@ -185,7 +197,7 @@ class OverlayView(
         // can become visible now and is only revealed as the panel slides right.
         handleView.visibility = VISIBLE
         panelView.animate()
-            .translationX(dp(effectivePreset.panelWidthDp).toFloat())
+            .translationX(parkOffsetPx(currentSide(), effectivePreset))
             .setDuration(Tokens.EXPAND_COLLAPSE_MS)
             .setInterpolator(motionInterpolator)
             .withEndAction {
@@ -219,8 +231,8 @@ class OverlayView(
         preDragHandleAlpha = handleView.alpha
         state = State.Dragging
         // DESIGN.md section 2, motion — drag state: scaleX 1.5, alpha 1.0. The pivot is
-        // the screen edge so the bar grows inward and never off the window surface.
-        handleView.pivotX = handleView.width.toFloat()
+        // the anchored screen edge so the bar grows inward and never off the window surface.
+        handleView.pivotX = if (currentSide() == ScreenSide.Left) 0f else handleView.width.toFloat()
         handleView.pivotY = handleView.height / 2f
         handleView.scaleX = Tokens.HANDLE_DRAG_SCALE_X
         handleView.alpha = Tokens.HANDLE_DRAG_ALPHA
@@ -406,11 +418,12 @@ class OverlayView(
         val params = layoutParams as? WindowManager.LayoutParams ?: return
         val range = SafeArea.compute(screen, dp(effectivePreset.panelHeightDp), marginPx)
         dragRange = range
-        // X offset (01-ui-spec.md section 4): with Gravity.RIGHT, x is the inward
-        // distance from the right edge — the navigation bar sitting there in landscape
-        // with 3-button navigation, or a cutout — so the overlay never covers system
-        // areas on the x axis.
-        params.x = screen.rightInsetPx
+        // Re-anchor to the stored side (01-ui-spec.md section 4): physical LEFT/RIGHT and
+        // the inward-x from that side's own inset, so the overlay never covers a system
+        // area on the x axis and switches edge live when the setting changes.
+        val side = currentSide()
+        params.gravity = gravityFor(side)
+        params.x = inwardOffsetPx(side, screen.leftInsetPx, screen.rightInsetPx)
         params.y = when (state) {
             State.Dragging -> Math.round(SafeArea.clampY(params.y.toFloat(), range))
             else -> Math.round(SafeArea.yFromRatio(Prefs.yRatio(context), range))
@@ -455,7 +468,7 @@ class OverlayView(
         panelView = PanelView(context, buttonSpecs, preset)
         addView(panelView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         panelView.visibility = if (panelVisible) VISIBLE else GONE
-        panelView.translationX = if (panelVisible) 0f else dp(preset.panelWidthDp).toFloat()
+        panelView.translationX = if (panelVisible) 0f else parkOffsetPx(currentSide(), preset)
         if (panelVisible) resizeWindow(dp(preset.panelWidthDp))
     }
 
