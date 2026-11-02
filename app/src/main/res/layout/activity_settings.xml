@@ -280,5 +280,27 @@
             android:textAllCaps="false"
             android:textSize="16sp" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/section_credits"
+            android:fontFamily="sans-serif-medium"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/credits_developer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/credits_version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="16sp" />
+
     </LinearLayout>
 </ScrollView>

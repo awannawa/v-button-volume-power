@@ -4,9 +4,13 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.text.Html
+import android.text.method.LinkMovementMethod
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -147,6 +151,27 @@ class SettingsActivity : Activity() {
         findViewById<Button>(R.id.reset_position_button).setOnClickListener {
             Prefs.setYRatio(this, Prefs.Y_RATIO_DEFAULT)
         }
+
+        // Credits: developer hyperlink and current app version.
+        val developerView = findViewById<TextView>(R.id.credits_developer)
+        developerView.text = Html.fromHtml(
+            getString(R.string.credits_developer),
+            Html.FROM_HTML_MODE_COMPACT,
+        )
+        developerView.movementMethod = LinkMovementMethod.getInstance()
+
+        val versionName = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0)).versionName
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0).versionName
+            } ?: "1.0.1"
+        } catch (e: Exception) {
+            "1.0.1"
+        }
+        findViewById<TextView>(R.id.credits_version).text =
+            getString(R.string.credits_app_version, versionName)
     }
 
     /** Opens this app's App info page (T09): package URI, no permission needed. */

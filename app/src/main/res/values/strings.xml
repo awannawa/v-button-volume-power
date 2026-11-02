@@ -55,4 +55,9 @@
     <string name="vivo_step_3">3. Lock the app in Recents: tap the app\'s lock icon in the recents screen.</string>
     <string name="vivo_battery_button">Battery optimization settings</string>
     <string name="vivo_app_info_button">App info</string>
+
+    <!-- Credits -->
+    <string name="section_credits">Credits</string>
+    <string name="credits_developer"><![CDATA[Developer: <a href="https://linktree.awannawa.my.id/">Awannawa</a>]]></string>
+    <string name="credits_app_version">App version: %1$s</string>
 </resources>
