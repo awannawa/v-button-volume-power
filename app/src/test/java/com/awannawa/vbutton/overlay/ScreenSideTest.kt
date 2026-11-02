@@ -35,4 +35,10 @@ class ScreenSideTest {
     fun `inward offset on the left uses the left inset`() {
         assertEquals(40, inwardOffsetPx(ScreenSide.Left, leftInsetPx = 40, rightInsetPx = 90))
     }
+
+    @Test
+    fun `the documented default side is Right`() {
+        // Prefs.SCREEN_SIDE_DEFAULT mirrors this; keep them in sync.
+        assertEquals(ScreenSide.Right, ScreenSide.fromStoredOr(null))
+    }
 }

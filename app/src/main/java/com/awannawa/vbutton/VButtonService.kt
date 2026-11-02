@@ -9,12 +9,13 @@ import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
 import android.util.Log
-import android.view.Gravity
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import com.awannawa.vbutton.overlay.OverlayView
 import com.awannawa.vbutton.overlay.SafeArea
 import com.awannawa.vbutton.overlay.Tokens
+import com.awannawa.vbutton.overlay.gravityFor
+import com.awannawa.vbutton.overlay.inwardOffsetPx
 
 /**
  * Owns the overlay window: attaches it when the system binds the service and
@@ -119,7 +120,6 @@ class VButtonService : AccessibilityService() {
      * changes its width afterwards. Actions is created here too, one instance per
      * overlay, so its press-handler registry never grows across rebinds.
      */
-    @SuppressLint("RtlHardcoded") // RIGHT is required, see the gravity comment below
     private fun attachOverlay() {
         if (overlayView != null) return
         val manager = windowManager ?: return
@@ -142,6 +142,11 @@ class VButtonService : AccessibilityService() {
         )
         val startPositionY = Math.round(SafeArea.yFromRatio(Prefs.yRatio(this), range))
 
+        // The stored side (default Right) anchors the window: physical LEFT/RIGHT, never
+        // END/START, so RTL cannot flip it. Read here so a restart/reboot restores the
+        // chosen edge before addView.
+        val side = Prefs.screenSide(this)
+
         val params = WindowManager.LayoutParams(
             dp(Tokens.COLLAPSED_WINDOW_WIDTH_DP),
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -152,13 +157,14 @@ class VButtonService : AccessibilityService() {
                 WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT,
         ).apply {
-            // RIGHT, not END: END mirrors to the left edge in RTL locales, while this
-            // overlay must stay on the physical right edge (PRD section 10).
-            gravity = Gravity.RIGHT or Gravity.TOP
-            // X offset (01-ui-spec.md section 4): with RIGHT gravity, x is the inward
-            // distance from the right edge — the navigation bar sitting there in
-            // landscape with 3-button navigation, or a cutout.
-            x = screen.rightInsetPx
+            // Physical LEFT/RIGHT (never END/START): the anchor follows the stored side but
+            // never mirrors under RTL, so the overlay stays on the edge the user picked (PRD
+            // section 10).
+            gravity = gravityFor(side)
+            // X offset (01-ui-spec.md section 4): the inward distance from the anchored edge
+            // — the navigation bar sitting there in landscape with 3-button navigation, or a
+            // cutout — read on the side's own edge.
+            x = inwardOffsetPx(side, screen.leftInsetPx, screen.rightInsetPx)
             y = startPositionY
             // Cutout behavior (01-ui-spec.md section 4: the overlay must not be
             // clipped by the cutout in landscape). The overlay positions itself

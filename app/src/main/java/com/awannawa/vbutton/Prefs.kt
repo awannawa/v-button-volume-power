@@ -1,6 +1,8 @@
 package com.awannawa.vbutton
 
 import android.content.Context
+import com.awannawa.vbutton.overlay.ScreenSide
+import com.awannawa.vbutton.overlay.fromStoredOr
 
 /**
  * Single source of truth for every SharedPreferences key and its default (AGENTS.md).
@@ -108,6 +110,29 @@ object Prefs {
         context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_SIZE_PRESET, preset)
+            .apply()
+    }
+
+    /**
+     * The physical screen edge the overlay hugs, stored as its [ScreenSide] name. Default
+     * is Right, so existing users see no change. The overlay reads it on connect (window
+     * anchoring) and via applyConfig; only the settings UI writes it.
+     */
+    private const val KEY_SCREEN_SIDE = "screen_side"
+    val SCREEN_SIDE_DEFAULT: ScreenSide = ScreenSide.Right
+
+    /** Stored side, or [SCREEN_SIDE_DEFAULT] for absent/unreadable values. */
+    fun screenSide(context: Context): ScreenSide =
+        ScreenSide.fromStoredOr(
+            context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+                .getString(KEY_SCREEN_SIDE, ScreenSide.STORED_RIGHT),
+        )
+
+    /** Writes the side. Only the settings UI writes this. */
+    fun setScreenSide(context: Context, side: ScreenSide) {
+        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_SCREEN_SIDE, if (side == ScreenSide.Left) ScreenSide.STORED_LEFT else ScreenSide.STORED_RIGHT)
             .apply()
     }
 

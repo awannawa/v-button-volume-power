@@ -1,5 +1,6 @@
 package com.awannawa.vbutton.overlay
 
+import android.annotation.SuppressLint
 import android.view.Gravity
 
 /**
@@ -24,6 +25,7 @@ fun ScreenSide.Companion.fromStoredOr(value: String?): ScreenSide =
     if (value == ScreenSide.STORED_LEFT) ScreenSide.Left else ScreenSide.Right
 
 /** Pure: window gravity for a side. TOP is constant; only the left/right anchor flips. */
+@SuppressLint("RtlHardcoded") // physical LEFT/RIGHT are required; END/START would flip under RTL
 fun gravityFor(side: ScreenSide): Int =
     (if (side == ScreenSide.Left) Gravity.LEFT else Gravity.RIGHT) or Gravity.TOP
 
