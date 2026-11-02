@@ -41,4 +41,11 @@ class ScreenSideTest {
         // Prefs.SCREEN_SIDE_DEFAULT mirrors this; keep them in sync.
         assertEquals(ScreenSide.Right, ScreenSide.fromStoredOr(null))
     }
+
+    @Test
+    fun `handle bar hugs the anchored edge`() {
+        // 24dp touch width at 1px/dp, 5px bar: left edge -> 0, right edge -> 19.
+        assertEquals(0, handleBarLeftPx(ScreenSide.Left, widthPx = 24, barWidthPx = 5))
+        assertEquals(19, handleBarLeftPx(ScreenSide.Right, widthPx = 24, barWidthPx = 5))
+    }
 }

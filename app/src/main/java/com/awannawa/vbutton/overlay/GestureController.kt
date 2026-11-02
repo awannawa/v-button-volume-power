@@ -8,17 +8,17 @@ import kotlin.math.abs
 
 /**
  * Whether a fling opens the panel, decoupled from Android APIs so it runs in JVM unit
- * tests (AGENTS.md). The rule implements FR-4's "a swipe to the left": the fling must
- * be leftward ([velocityX] < 0), horizontally dominant (|velocityX| > |velocityY|),
- * fast enough ([minFlingVelocityPx]) and traveled far enough horizontally
- * ([touchSlopPx]). Both thresholds are the view's scaled ViewConfiguration values at
- * event time — never fixed px, never cached across configuration changes
- * (01-ui-spec.md section 4).
+ * tests (AGENTS.md). The rule implements FR-4's inward swipe: the fling must travel
+ * inward from the anchored [side] (leftward on the right edge, rightward on the left
+ * edge), be horizontally dominant (|velocityX| > |velocityY|), fast enough
+ * ([minFlingVelocityPx]) and traveled far enough horizontally ([touchSlopPx]). Both
+ * thresholds are the view's scaled ViewConfiguration values at event time — never fixed
+ * px, never cached across configuration changes (01-ui-spec.md section 4).
  *
  * GestureDetector fires onFling when EITHER axis exceeds its minimum fling velocity,
- * so without the dominance check a vertical list scroll that merely drifts left while
- * starting on the 24dp handle strip would open the panel; FR-4 wants a horizontal
- * swipe, not any gesture with a leftward component.
+ * so without the dominance check a vertical list scroll that merely drifts sideways
+ * while starting on the 24dp handle strip would open the panel; FR-4 wants a horizontal
+ * swipe, not any gesture with a sideways component.
  */
 internal fun shouldOpenOnFling(
     side: ScreenSide,
@@ -40,7 +40,7 @@ internal fun shouldOpenOnFling(
 
 /**
  * Gesture logic for the handle (AGENTS.md: gestures live here, not in Views). Wraps
- * a [GestureDetector]: a short tap or a left fling opens the panel (PRD FR-4) and a
+ * a [GestureDetector]: a short tap or an inward fling opens the panel (PRD FR-4) and a
  * long press enters drag mode (PRD FR-6), each reported through the callback the
  * owning OverlayView supplies. The controller never touches overlay state or the
  * service itself — it only recognizes gestures and reports them.

@@ -26,9 +26,10 @@ internal object SafeArea {
     /**
      * One reading of the screen for the current configuration, in px: the height the Y
      * range is measured against, plus the insets the overlay must stay clear of on the
-     * edges that matter. [rightInsetPx] feeds the window's X offset (01-ui-spec.md
-     * section 4: the navigation bar on the right in landscape with 3-button
-     * navigation, or a cutout — 0 when nothing intrudes there, as in portrait).
+     * edges that matter. [leftInsetPx] and [rightInsetPx] feed the window's X offset on
+     * whichever edge the side hugs (01-ui-spec.md section 4: the navigation bar on that
+     * side in landscape with 3-button navigation, or a cutout — 0 when nothing intrudes
+     * there, as in portrait).
      */
     data class ScreenInsets(
         val screenHeightPx: Int,
@@ -105,10 +106,6 @@ internal object SafeArea {
             rightInsetPx = 0,
         )
     }
-
-    /** The inset on the edge the overlay hugs: [ScreenSide.Left] reads the left inset, else the right. */
-    fun insetForSide(screen: ScreenInsets, side: ScreenSide): Int =
-        if (side == ScreenSide.Left) screen.leftInsetPx else screen.rightInsetPx
 
     /**
      * Android wrapper, same signature T05 left it: fresh [ScreenInsets] plus the

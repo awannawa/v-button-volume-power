@@ -235,17 +235,4 @@ class SafeAreaTest {
             SafeArea.compute(screen, 500, 24),
         )
     }
-
-    @Test
-    fun `inset for side picks the matching edge`() {
-        val screen = SafeArea.ScreenInsets(
-            screenHeightPx = 2400,
-            insetTopPx = 100,
-            insetBottomPx = 100,
-            leftInsetPx = 42,
-            rightInsetPx = 90,
-        )
-        assertEquals(42, SafeArea.insetForSide(screen, ScreenSide.Left))
-        assertEquals(90, SafeArea.insetForSide(screen, ScreenSide.Right))
-    }
 }

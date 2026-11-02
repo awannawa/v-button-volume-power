@@ -7,9 +7,9 @@ import android.view.MotionEvent
 import android.view.View
 
 /**
- * Draws the collapsed handle: the 5dp x 72dp bar on the RIGHT edge of its bounds,
- * while the rest of the view (24dp wide, 01-ui-spec.md section 2) is the touch area
- * [GestureController] listens to. All values come from [Tokens]; the opacity comes
+ * Draws the collapsed handle: the 5dp x 72dp bar on the anchored screen edge (left or
+ * right), while the rest of the view (24dp wide, 01-ui-spec.md section 2) is the touch
+ * area [GestureController] listens to. All values come from [Tokens]; the opacity comes
  * from the settings via OverlayView.applyConfig (View.alpha).
  */
 class HandleView(
@@ -27,17 +27,15 @@ class HandleView(
         cornerRadius = dp(Tokens.HANDLE_BAR_WIDTH_DP) / 2f
     }
 
-    override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
-        // The bar hugs the chosen screen edge. Canvas coordinates run left-to-right in
-        // every locale, so drawing at the left bound stays on the physical left edge, and
-        // at the right bound on the physical right edge (same reasoning as the window's
-        // physical Gravity, PRD section 10).
-        val barPx = dp(Tokens.HANDLE_BAR_WIDTH_DP)
-        val left = if (side() == ScreenSide.Left) 0 else width - barPx
-        bar.setBounds(left, 0, left + barPx, height)
-    }
-
     override fun onDraw(canvas: Canvas) {
+        // Bounds are set here, not in onSizeChanged, so a live side change (invalidate from
+        // OverlayView.recomputeLayout) moves the bar to the new edge on the next frame. Canvas
+        // coordinates run left-to-right in every locale, so 0 is the physical left bound and
+        // width is the physical right bound (same reasoning as the window's physical Gravity,
+        // PRD section 10).
+        val barPx = dp(Tokens.HANDLE_BAR_WIDTH_DP)
+        val left = handleBarLeftPx(side(), width, barPx)
+        bar.setBounds(left, 0, left + barPx, height)
         bar.draw(canvas)
     }
 

@@ -13,6 +13,9 @@ enum class ScreenSide {
     Right,
     Left;
 
+    /** The exact string Prefs writes for this side. */
+    val stored: String get() = if (this == Left) STORED_LEFT else STORED_RIGHT
+
     companion object {
         /** The exact string Prefs stores for [Left]; every other stored value maps to [Right]. */
         const val STORED_LEFT = "left"
@@ -36,3 +39,11 @@ fun gravityFor(side: ScreenSide): Int =
  */
 fun inwardOffsetPx(side: ScreenSide, leftInsetPx: Int, rightInsetPx: Int): Int =
     if (side == ScreenSide.Left) leftInsetPx else rightInsetPx
+
+/**
+ * Pure: the left bound of the handle bar inside its [widthPx] touch area, so the bar hugs
+ * the anchored edge. A left side starts at 0; a right side ends at [widthPx]. Read on
+ * every draw, so a live side change redraws the bar on the new edge.
+ */
+fun handleBarLeftPx(side: ScreenSide, widthPx: Int, barWidthPx: Int): Int =
+    if (side == ScreenSide.Left) 0 else widthPx - barWidthPx

@@ -27,9 +27,9 @@ private const val LOG_TAG = "VButton"
  *
  * T07 adds the screen-fit pass ([recomputeLayout], run on configuration changes and
  * through [applyConfig]): insets via WindowMetrics, compact mode, the window's X
- * offset from the right inset, and restoring the position from the stored yRatio
+ * offset from the anchored side's inset, and restoring the position from the stored yRatio
  * (01-ui-spec.md section 4). It also excludes the whole window from the system back
- * gesture ([onLayout], PRD R1), so a leftward swipe on the handle opens the panel.
+ * gesture ([onLayout], PRD R1), so an inward swipe on the handle opens the panel.
  *
  * Expanding comes from [GestureController] (tap or left fling on the handle, FR-4);
  * dragging comes from the same controller (handle long press, FR-6). Collapsing
@@ -194,7 +194,7 @@ class OverlayView(
     private fun showCollapsed() {
         cancelAutoCollapse()
         // The handle sits under the panel (same dark fill, panel is on top), so it
-        // can become visible now and is only revealed as the panel slides right.
+        // can become visible now and is only revealed as the panel slides off the edge.
         handleView.visibility = VISIBLE
         panelView.animate()
             .translationX(parkOffsetPx(currentSide(), effectivePreset))
@@ -424,6 +424,9 @@ class OverlayView(
         val side = currentSide()
         params.gravity = gravityFor(side)
         params.x = inwardOffsetPx(side, screen.leftInsetPx, screen.rightInsetPx)
+        // The handle bar's left/right bound lives in onDraw (reads side() each frame); a
+        // live side change must repaint it, or the collapsed bar stays on the old edge.
+        handleView.invalidate()
         params.y = when (state) {
             State.Dragging -> Math.round(SafeArea.clampY(params.y.toFloat(), range))
             else -> Math.round(SafeArea.yFromRatio(Prefs.yRatio(context), range))

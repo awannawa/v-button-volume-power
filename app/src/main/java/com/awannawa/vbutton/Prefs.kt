@@ -125,14 +125,14 @@ object Prefs {
     fun screenSide(context: Context): ScreenSide =
         ScreenSide.fromStoredOr(
             context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
-                .getString(KEY_SCREEN_SIDE, ScreenSide.STORED_RIGHT),
+                .getString(KEY_SCREEN_SIDE, SCREEN_SIDE_DEFAULT.stored),
         )
 
     /** Writes the side. Only the settings UI writes this. */
     fun setScreenSide(context: Context, side: ScreenSide) {
         context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
             .edit()
-            .putString(KEY_SCREEN_SIDE, if (side == ScreenSide.Left) ScreenSide.STORED_LEFT else ScreenSide.STORED_RIGHT)
+            .putString(KEY_SCREEN_SIDE, side.stored)
             .apply()
     }
 
