@@ -14,6 +14,7 @@ import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
+import com.awannawa.vbutton.overlay.ScreenSide
 
 /**
  * Settings screen and launcher (T08, FR-10 to FR-12). Plain platform widgets in a
@@ -93,6 +94,13 @@ class SettingsActivity : Activity() {
             Prefs.setSizePreset(this, preset)
         }
 
+        // The screen side the overlay hugs (right default). Written live; the service's
+        // Prefs listener pushes it through applyConfig, which re-anchors the window.
+        findViewById<RadioGroup>(R.id.side_group).setOnCheckedChangeListener { _, checkedId ->
+            val side = if (checkedId == R.id.side_left) ScreenSide.Left else ScreenSide.Right
+            Prefs.setScreenSide(this, side)
+        }
+
         // FR-11: written per tick, so the overlay's alpha follows the thumb live.
         findViewById<SeekBar>(R.id.opacity_seekbar).setOnSeekBarChangeListener(
             object : SeekBar.OnSeekBarChangeListener {
@@ -170,6 +178,10 @@ class SettingsActivity : Activity() {
                 Prefs.SIZE_PRESET_LARGE -> R.id.size_large
                 else -> R.id.size_medium
             },
+        )
+
+        findViewById<RadioGroup>(R.id.side_group).check(
+            if (Prefs.screenSide(this) == ScreenSide.Left) R.id.side_left else R.id.side_right,
         )
 
         val opacity = Prefs.handleOpacityPercent(this)

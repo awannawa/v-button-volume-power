@@ -102,6 +102,36 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:text="@string/section_screen_side"
+            android:fontFamily="sans-serif-medium"
+            android:textSize="14sp" />
+
+        <RadioGroup
+            android:id="@+id/side_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/side_right"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/side_right"
+                android:textSize="16sp" />
+
+            <RadioButton
+                android:id="@+id/side_left"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/side_left"
+                android:textSize="16sp" />
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
             android:text="@string/section_handle_opacity"
             android:fontFamily="sans-serif-medium"
             android:textSize="14sp" />

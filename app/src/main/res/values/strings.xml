@@ -22,6 +22,10 @@
     <string name="size_medium">Medium</string>
     <string name="size_large">Large</string>
 
+    <string name="section_screen_side">Screen side</string>
+    <string name="side_right">Right</string>
+    <string name="side_left">Left</string>
+
     <string name="section_handle_opacity">Handle opacity</string>
     <string name="handle_opacity_readout">%1$d%%</string>
 
